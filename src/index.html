@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>DiploSpot</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DiploSpot">
+  <meta name="theme-color" content="#0a0a0a">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <h1 id="title">DiploSpot</h1>
+    <input type="text" id="plate-input" maxlength="3" minlength="2" placeholder="Type 2-3 letters..." autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" data-form-type="other">
+
+    <div id="result-container" class="result-card hidden">
+      <p id="result-type"></p>
+      <p id="result-country"></p>
+      <p id="result-code"></p>
+      <p id="result-note"></p>
+    </div>
+  </div>
+
+  <script src="ofm_codes.js"></script>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js');
+    }
+  </script>
+</body>
+</html>

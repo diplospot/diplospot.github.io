@@ -1,0 +1,23 @@
+name: Label guard
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  issues: write
+
+jobs:
+  revert-unauthorized-label:
+    if: github.event.sender.login != 'axemclion'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number }}
+          LABEL: ${{ github.event.label.name }}
+          ACTOR: ${{ github.event.sender.login }}
+        run: |
+          gh issue edit "$ISSUE" --repo "$REPO" --remove-label "$LABEL"
+          gh issue comment "$ISSUE" --repo "$REPO" --body "Only the repo owner can assign labels. Removed \`$LABEL\` (added by @$ACTOR)."
