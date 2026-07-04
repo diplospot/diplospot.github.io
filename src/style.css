@@ -27,11 +27,11 @@ body {
   gap: 24px;
 }
 
-#title {
-  font-size: 36px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  color: #ccc;
+.instructions {
+  color: #888;
+  font-size: 16px;
+  text-align: center;
+  margin-top: -12px;
 }
 
 #plate-input {
@@ -103,10 +103,12 @@ body {
 }
 
 #result-country {
-  font-size: 56px;
+  font-size: clamp(24px, 10vw, 56px);
   font-weight: 700;
   line-height: 1.1;
   margin-bottom: 12px;
+  overflow-wrap: break-word;
+  width: 100%;
 }
 
 #result-code {
