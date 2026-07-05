@@ -30,7 +30,9 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issues' &&
        github.event.label.name == 'triage-send-to-bot' &&
-       (github.event.sender.login == 'axemclion' || github.event.sender.login == 'github-actions[bot]')) ||
+       (github.event.sender.login == 'axemclion' ||
+        github.event.sender.login == 'axemclion-bot' ||
+        github.event.sender.login == 'github-actions[bot]')) ||
       (github.event_name == 'pull_request' &&
        github.event.pull_request.head.repo.full_name == github.repository &&
        (github.event.pull_request.user.login == 'google-labs-jules[bot]' ||
