@@ -62,7 +62,13 @@ jobs:
             exit 0
           fi
 
-          if ! gh pr checks "$PR_URL" --watch --fail-fast; then
+          # --required matters: this very job is itself a check run on this
+          # PR (triggered by the same pull_request event), and it's still
+          # in_progress while we're sitting in this step. Without --required,
+          # --watch would wait on that check too and deadlock against itself.
+          # "build" is the only required check (branch protection), so this
+          # only waits on that.
+          if ! gh pr checks "$PR_URL" --watch --required --fail-fast; then
             echo "Checks failed (or were cancelled) for PR #$PR_NUMBER, leaving it open for review."
             exit 0
           fi
