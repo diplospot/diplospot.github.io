@@ -10,7 +10,17 @@ permissions:
 
 jobs:
   enable-auto-merge:
-    if: github.event.pull_request.user.login == 'google-labs-jules[bot]'
+    # PRs from the jules-invoke API flow are authored as the repo owner
+    # (the account whose API key was used), not google-labs-jules[bot] --
+    # only the commit itself is co-authored by the bot. So accept either
+    # identity, but only for branches that live in this repo: a fork can
+    # never satisfy that (forks require push access this repo doesn't
+    # grant to anyone but the owner/automation), so it can't be spoofed
+    # by an attacker's PR claiming to be from Jules.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event.pull_request.user.login == 'google-labs-jules[bot]' ||
+       github.event.pull_request.user.login == 'axemclion')
     runs-on: ubuntu-latest
     steps:
       - env:
