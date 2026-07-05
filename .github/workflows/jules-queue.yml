@@ -32,7 +32,9 @@ jobs:
        github.event.label.name == 'triage-send-to-bot' &&
        (github.event.sender.login == 'axemclion' || github.event.sender.login == 'github-actions[bot]')) ||
       (github.event_name == 'pull_request' &&
-       github.event.pull_request.user.login == 'google-labs-jules[bot]')
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       (github.event.pull_request.user.login == 'google-labs-jules[bot]' ||
+        github.event.pull_request.user.login == 'axemclion'))
     runs-on: ubuntu-latest
     steps:
       - name: Release lock from a finished Jules PR
@@ -41,14 +43,24 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           MERGED: ${{ github.event.pull_request.merged }}
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          issue=$(gh issue list --repo "$REPO" --label jules-in-progress --state open --json number --jq '.[0].number // empty')
-          if [ -n "$issue" ]; then
-            gh issue edit "$issue" --repo "$REPO" --remove-label jules-in-progress
-            if [ "$MERGED" != "true" ]; then
-              gh issue edit "$issue" --repo "$REPO" --add-label jules-failed
-              gh issue comment "$issue" --repo "$REPO" --body "Jules' pull request was closed without merging. Add \`triage-send-to-bot\` again to retry."
-            fi
+          issue=$(gh issue list --repo "$REPO" --label jules-in-progress --state all --json number --jq '.[0].number // empty')
+          if [ -z "$issue" ]; then
+            echo "No issue is currently locked, nothing to release."
+            exit 0
+          fi
+          # Only release the lock if this PR is actually the one for the
+          # locked issue (matches a GitHub closing keyword), so an unrelated
+          # PR closing at the same time can't desync the queue.
+          if ! grep -qiE "(close[sd]?|fix(e[sd])?|resolve[sd]?) +#$issue\b" <<<"$PR_BODY"; then
+            echo "This PR doesn't reference the locked issue #$issue, leaving the lock alone."
+            exit 0
+          fi
+          gh issue edit "$issue" --repo "$REPO" --remove-label jules-in-progress
+          if [ "$MERGED" != "true" ]; then
+            gh issue edit "$issue" --repo "$REPO" --add-label jules-failed
+            gh issue comment "$issue" --repo "$REPO" --body "Jules' pull request was closed without merging. Add \`triage-send-to-bot\` again to retry."
           fi
 
       - name: Find next queued issue
