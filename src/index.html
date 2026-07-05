@@ -27,12 +27,13 @@
     </div>
   </div>
 
+  <div id="update-notification" class="hidden">
+    <p>New version available</p>
+    <button class="refresh-button">Refresh</button>
+  </div>
+
   <script src="ofm_codes.js"></script>
   <script src="app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js');
-    }
-  </script>
+  <script src="sw-register.js"></script>
 </body>
 </html>

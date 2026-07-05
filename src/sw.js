@@ -1,4 +1,4 @@
-var CACHE_NAME = 'diplospot-v1';
+var CACHE_NAME = 'diplospot-v2';
 var ASSETS = [
   './',
   './index.html',
@@ -6,15 +6,14 @@ var ASSETS = [
   './icon-192.png',
   './icon-512.png',
   './favicon-32.png',
-  './favicon-16.png'
+  './favicon-16.png',
+  './favicon.png'
 ];
 
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
       return cache.addAll(ASSETS);
-    }).then(function () {
-      return self.skipWaiting();
     })
   );
 });
@@ -34,16 +33,26 @@ self.addEventListener('activate', function (event) {
 
 self.addEventListener('fetch', function (event) {
   event.respondWith(
-    fetch(event.request).then(function (response) {
-      if (response && response.status === 200 && response.type === 'basic') {
-        var clone = response.clone();
-        caches.open(CACHE_NAME).then(function (cache) {
-          cache.put(event.request, clone);
-        });
+    caches.match(event.request).then(function (response) {
+      if (response) {
+        return response;
       }
-      return response;
-    }).catch(function () {
-      return caches.match(event.request);
+      return fetch(event.request).then(function (networkResponse) {
+        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+          return networkResponse;
+        }
+        var responseToCache = networkResponse.clone();
+        caches.open(CACHE_NAME).then(function (cache) {
+          cache.put(event.request, responseToCache);
+        });
+        return networkResponse;
+      });
     })
   );
+});
+
+self.addEventListener('message', function (event) {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
