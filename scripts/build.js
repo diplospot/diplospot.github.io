@@ -17,7 +17,7 @@ const COPY_FILES = [
   'icon-512.png',
 ];
 
-const INLINE_SCRIPTS = ['ofm_codes.js', 'app.js'];
+const INLINE_SCRIPTS = ['ofm_codes.js', 'app.js', 'sw-register.js'];
 
 async function build() {
   fs.rmSync(DIST, { recursive: true, force: true });
@@ -37,8 +37,8 @@ async function build() {
 
   let html = fs.readFileSync(path.join(SRC, 'index.html'), 'utf8');
 
-  const cssLinkPattern = /<link rel="stylesheet" href="style\.css">/;
-  const scriptTagsPattern = /<script src="ofm_codes\.js"><\/script>\s*<script src="app\.js"><\/script>/;
+  const cssLinkPattern = /<link\s+rel="stylesheet"\s+href="style\.css">/;
+  const scriptTagsPattern = /<script\s+src="ofm_codes\.js"><\/script>\s*<script\s+src="app\.js"><\/script>\s*<script\s+src="sw-register\.js"><\/script>/;
   if (!cssLinkPattern.test(html)) throw new Error('build.js: stylesheet <link> not found in src/index.html');
   if (!scriptTagsPattern.test(html)) throw new Error('build.js: script tags not found in src/index.html');
 
