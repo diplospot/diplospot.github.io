@@ -4,11 +4,11 @@ function showResult(data) {
   if (data.success) {
     document.getElementById('result-type').textContent = data.prefix || '';
     document.getElementById('result-country').textContent = data.country.toUpperCase();
-    document.getElementById('result-code').textContent = 'Code: ' + data.plateCode;
+    document.getElementById('result-code').textContent = '';
     container.className = 'result-card success';
   } else {
     document.getElementById('result-type').textContent = 'NOT RECOGNIZED';
-    document.getElementById('result-country').textContent = data.message || 'Unknown plate';
+    document.getElementById('result-country').textContent = 'Unknown plate';
     document.getElementById('result-code').textContent = '';
     container.className = 'result-card failure';
   }
