@@ -9,7 +9,6 @@ const DIST = path.join(__dirname, '..', 'dist');
 
 const COPY_FILES = [
   'manifest.json',
-  'sw.js',
   'favicon-16.png',
   'favicon-32.png',
   'favicon.png',
@@ -26,6 +25,11 @@ async function build() {
   for (const file of COPY_FILES) {
     fs.copyFileSync(path.join(SRC, file), path.join(DIST, file));
   }
+
+  // Minify sw.js
+  const swJs = fs.readFileSync(path.join(SRC, 'sw.js'), 'utf8');
+  const minifiedSwJs = (await minifyJs(swJs)).code;
+  fs.writeFileSync(path.join(DIST, 'sw.js'), minifiedSwJs);
 
   const css = fs.readFileSync(path.join(SRC, 'style.css'), 'utf8');
   const minifiedCss = new CleanCSS({}).minify(css).styles;
@@ -48,8 +52,8 @@ async function build() {
   const minifiedHtml = await minifyHtml(html, {
     collapseWhitespace: true,
     removeComments: true,
-    minifyCSS: false,
-    minifyJS: false,
+    minifyCSS: true,
+    minifyJS: true,
   });
 
   fs.writeFileSync(path.join(DIST, 'index.html'), minifiedHtml);
