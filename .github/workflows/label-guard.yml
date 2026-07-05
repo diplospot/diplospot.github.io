@@ -9,10 +9,12 @@ permissions:
 
 jobs:
   revert-unauthorized-label:
-    # Only the owner and our own automation (Jules queue engine / Jules itself)
-    # are allowed to add or remove labels. Anyone else's change is reverted.
+    # Only the owner, the owner's bot account, and our own automation
+    # (Jules queue engine / Jules itself) are allowed to add or remove
+    # labels. Anyone else's change is reverted.
     if: >-
       github.event.sender.login != 'axemclion' &&
+      github.event.sender.login != 'axemclion-bot' &&
       github.event.sender.login != 'github-actions[bot]' &&
       github.event.sender.login != 'google-labs-jules[bot]'
     runs-on: ubuntu-latest
