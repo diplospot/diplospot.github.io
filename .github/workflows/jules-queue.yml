@@ -1,0 +1,117 @@
+name: Jules Issue Queue
+
+# Processes issues labeled `triage-send-to-bot` one at a time:
+#   1. An issue is labeled -> if nothing is in flight, Jules starts on it.
+#   2. When Jules' PR for the in-flight issue closes (merged or not), the lock
+#      is released and the next queued issue (oldest first) is picked up.
+# This guarantees only one Jules session runs at a time, and each new session
+# starts from `main` as of the previous PR's resolution, so there are no
+# stacked/conflicting Jules branches.
+
+on:
+  issues:
+    types: [labeled]
+  pull_request:
+    types: [closed]
+  workflow_dispatch: {} # manual bootstrap / retry
+
+concurrency:
+  group: jules-queue
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  advance-queue:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' &&
+       github.event.label.name == 'triage-send-to-bot' &&
+       (github.event.sender.login == 'axemclion' || github.event.sender.login == 'github-actions[bot]')) ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.user.login == 'google-labs-jules[bot]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release lock from a finished Jules PR
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          MERGED: ${{ github.event.pull_request.merged }}
+        run: |
+          issue=$(gh issue list --repo "$REPO" --label jules-in-progress --state open --json number --jq '.[0].number // empty')
+          if [ -n "$issue" ]; then
+            gh issue edit "$issue" --repo "$REPO" --remove-label jules-in-progress
+            if [ "$MERGED" != "true" ]; then
+              gh issue edit "$issue" --repo "$REPO" --add-label jules-failed
+              gh issue comment "$issue" --repo "$REPO" --body "Jules' pull request was closed without merging. Add \`triage-send-to-bot\` again to retry."
+            fi
+          fi
+
+      - name: Find next queued issue
+        id: pick
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          in_progress=$(gh issue list --repo "$REPO" --label jules-in-progress --state open --json number --jq 'length')
+          if [ "$in_progress" != "0" ]; then
+            echo "A Jules session is already in flight, nothing to do."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          next=$(gh issue list --repo "$REPO" --label triage-send-to-bot --state open --json number,title,body,createdAt --jq 'sort_by(.createdAt) | .[0] // empty')
+          if [ -z "$next" ]; then
+            echo "No queued issues."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          number=$(echo "$next" | jq -r '.number')
+          title=$(echo "$next" | jq -r '.title')
+          echo "$next" | jq -r '.body' > /tmp/issue_body.md
+
+          gh issue edit "$number" --repo "$REPO" --remove-label triage-send-to-bot --add-label jules-in-progress
+
+          {
+            echo "found=true"
+            echo "number=$number"
+            echo "title=$title"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build prompt
+        if: steps.pick.outputs.found == 'true'
+        id: prompt
+        env:
+          ISSUE_TITLE: ${{ steps.pick.outputs.title }}
+          ISSUE_NUMBER: ${{ steps.pick.outputs.number }}
+        run: |
+          # Use a random delimiter (not a fixed string) so an issue body can't
+          # smuggle extra key=value lines into $GITHUB_OUTPUT.
+          delimiter=$(openssl rand -hex 20)
+          {
+            echo "prompt<<$delimiter"
+            echo "Fix the following issue and open a pull request against main."
+            echo
+            echo "## $ISSUE_TITLE (#$ISSUE_NUMBER)"
+            echo
+            cat /tmp/issue_body.md
+            echo
+            echo "Requirements:"
+            echo "- Include \"Closes #$ISSUE_NUMBER\" in the pull request description so it auto-closes on merge."
+            echo "- Run \`npm run build\` and make sure it passes before submitting."
+            echo "- Add or update tests covering the change where practical."
+            echo "$delimiter"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Invoke Jules
+        if: steps.pick.outputs.found == 'true'
+        uses: google-labs-code/jules-invoke@v1
+        with:
+          prompt: ${{ steps.prompt.outputs.prompt }}
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          starting_branch: main

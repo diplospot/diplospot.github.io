@@ -2,14 +2,19 @@ name: Label guard
 
 on:
   issues:
-    types: [labeled]
+    types: [labeled, unlabeled]
 
 permissions:
   issues: write
 
 jobs:
   revert-unauthorized-label:
-    if: github.event.sender.login != 'axemclion'
+    # Only the owner and our own automation (Jules queue engine / Jules itself)
+    # are allowed to add or remove labels. Anyone else's change is reverted.
+    if: >-
+      github.event.sender.login != 'axemclion' &&
+      github.event.sender.login != 'github-actions[bot]' &&
+      github.event.sender.login != 'google-labs-jules[bot]'
     runs-on: ubuntu-latest
     steps:
       - env:
@@ -18,6 +23,12 @@ jobs:
           ISSUE: ${{ github.event.issue.number }}
           LABEL: ${{ github.event.label.name }}
           ACTOR: ${{ github.event.sender.login }}
+          ACTION: ${{ github.event.action }}
         run: |
-          gh issue edit "$ISSUE" --repo "$REPO" --remove-label "$LABEL"
-          gh issue comment "$ISSUE" --repo "$REPO" --body "Only the repo owner can assign labels. Removed \`$LABEL\` (added by @$ACTOR)."
+          if [ "$ACTION" = "labeled" ]; then
+            gh issue edit "$ISSUE" --repo "$REPO" --remove-label "$LABEL"
+            gh issue comment "$ISSUE" --repo "$REPO" --body "Only the repo owner or Jules automation can manage labels. Removed \`$LABEL\` (added by @$ACTOR)."
+          else
+            gh issue edit "$ISSUE" --repo "$REPO" --add-label "$LABEL"
+            gh issue comment "$ISSUE" --repo "$REPO" --body "Only the repo owner or Jules automation can manage labels. Restored \`$LABEL\` (removed by @$ACTOR)."
+          fi
