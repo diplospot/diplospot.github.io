@@ -6,7 +6,10 @@ function showResult(data) {
     document.getElementById('result-country').textContent = data.country.toUpperCase();
     container.className = 'result-card success';
   } else {
-    document.getElementById('result-type').textContent = 'NOT RECOGNIZED';
+    var raw = document.getElementById('plate-input').value;
+    var letters = raw.toUpperCase().replace(/[^A-Z]/g, '');
+    var searchUrl = 'https://www.google.com/search?q=US+diplomatic+license+plate+starts+with+' + letters;
+    document.getElementById('result-type').innerHTML = '<a href="' + searchUrl + '" target="_blank" rel="noopener">NOT RECOGNIZED</a>';
     document.getElementById('result-country').textContent = '';
     container.className = 'result-card failure';
   }
@@ -19,8 +22,25 @@ function hideResult() {
 }
 
 function onInput() {
-  var raw = document.getElementById('plate-input').value;
+  var input = document.getElementById('plate-input');
+  var raw = input.value;
   var letters = raw.toUpperCase().replace(/[^A-Z]/g, '');
+
+  if (letters.length > 0) {
+    var firstLetter = letters[0];
+    var isSpecial = firstLetter === 'C' || firstLetter === 'D' || firstLetter === 'S';
+    if (!isSpecial) {
+      input.maxLength = 2;
+      if (letters.length > 2) {
+        letters = letters.substring(0, 2);
+        input.value = letters;
+      }
+    } else {
+      input.maxLength = 3;
+    }
+  } else {
+    input.maxLength = 3;
+  }
 
   if (letters.length < 2) {
     hideResult();
