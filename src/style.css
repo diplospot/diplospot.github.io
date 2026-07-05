@@ -28,7 +28,7 @@ body {
 }
 
 .instructions {
-  color: #888;
+  color: #999;
   font-size: 16px;
   text-align: center;
   margin-top: -12px;
@@ -94,6 +94,10 @@ body {
   margin-bottom: 12px;
 }
 
+#result-type:empty {
+  display: none;
+}
+
 .success #result-type {
   color: #4ade80;
 }
@@ -103,7 +107,7 @@ body {
 }
 
 #result-country {
-  font-size: clamp(24px, 10vw, 56px);
+  font-size: clamp(24px, 10vw, 48px);
   font-weight: 700;
   line-height: 1.1;
   margin-bottom: 12px;
