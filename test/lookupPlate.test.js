@@ -36,3 +36,18 @@ test('returns null for an unrecognized code', () => {
 test('returns null for fewer than 2 letters', () => {
   assert.equal(sandbox.lookupPlate('A'), null);
 });
+
+test('handles 3 letters correctly when first is a special prefix', () => {
+  const result = sandbox.lookupPlate('DCY');
+  assert.equal(result.prefix, 'Diplomat');
+  assert.equal(result.country, 'China');
+});
+
+test('handles 3 letters correctly when first is NOT a special prefix (it should only take first 2)', () => {
+  // If user somehow enters 3 letters not starting with C, D, S
+  // lookupPlate takes first 2.
+  const result = sandbox.lookupPlate('XZA');
+  assert.equal(result.prefix, null);
+  assert.equal(result.code, 'XZ');
+  assert.equal(result.country, 'Australia');
+});
