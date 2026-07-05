@@ -2,17 +2,25 @@ name: Jules Issue Queue
 
 # Processes issues labeled `triage-send-to-bot` one at a time:
 #   1. An issue is labeled -> if nothing is in flight, Jules starts on it.
-#   2. When Jules' PR for the in-flight issue closes (merged or not), the lock
-#      is released and the next queued issue (oldest first) is picked up.
-# This guarantees only one Jules session runs at a time, and each new session
-# starts from `main` as of the previous PR's resolution, so there are no
-# stacked/conflicting Jules branches.
+#   2. When Jules opens/updates a PR, this same job waits for CI, merges it,
+#      closes the issue, releases the lock, and immediately picks up the next
+#      queued issue -- all inline, so it never depends on a *second* workflow
+#      run being triggered by the merge itself. (GitHub does not reliably
+#      fire pull_request:closed / issue auto-close for merges performed via
+#      GITHUB_TOKEN-based auto-merge, so we deliberately avoid depending on
+#      that path for the normal case.)
+#   3. `pull_request: closed` is kept only as a fallback for the case where a
+#      human merges or closes a Jules PR manually (a real user token, so the
+#      event fires normally).
+# Only one Jules session runs at a time, and each new session starts from
+# `main` as of the previous PR's resolution, so there are no stacked/
+# conflicting Jules branches.
 
 on:
   issues:
     types: [labeled]
   pull_request:
-    types: [closed]
+    types: [opened, reopened, synchronize, closed]
   workflow_dispatch: {} # manual bootstrap / retry
 
 concurrency:
@@ -20,9 +28,9 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
   issues: write
-  pull-requests: read
+  pull-requests: write
 
 jobs:
   advance-queue:
@@ -39,8 +47,42 @@ jobs:
         github.event.pull_request.user.login == 'axemclion'))
     runs-on: ubuntu-latest
     steps:
-      - name: Release lock from a finished Jules PR
-        if: github.event_name == 'pull_request'
+      - name: Wait for checks and merge Jules PR
+        if: github.event_name == 'pull_request' && github.event.action != 'closed'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          state=$(gh pr view "$PR_URL" --json state --jq '.state')
+          if [ "$state" != "OPEN" ]; then
+            echo "PR #$PR_NUMBER is already $state, nothing to do."
+            exit 0
+          fi
+
+          if ! gh pr checks "$PR_URL" --watch --fail-fast; then
+            echo "Checks failed (or were cancelled) for PR #$PR_NUMBER, leaving it open for review."
+            exit 0
+          fi
+
+          gh pr merge "$PR_URL" --squash --delete-branch
+
+          issue=$(gh issue list --repo "$REPO" --label jules-in-progress --state all --json number --jq '.[0].number // empty')
+          if [ -z "$issue" ]; then
+            echo "No issue is currently locked, nothing to release."
+            exit 0
+          fi
+          if ! grep -qiE "(close[sd]?|fix(e[sd])?|resolve[sd]?) +#$issue\b" <<<"$PR_BODY"; then
+            echo "This PR doesn't reference the locked issue #$issue, leaving the lock alone."
+            exit 0
+          fi
+          gh issue close "$issue" --repo "$REPO" || true
+          gh issue edit "$issue" --repo "$REPO" --remove-label jules-in-progress
+
+      - name: Release lock from a manually-closed Jules PR
+        if: github.event_name == 'pull_request' && github.event.action == 'closed'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
