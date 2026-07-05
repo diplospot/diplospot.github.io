@@ -119,7 +119,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
-          in_progress=$(gh issue list --repo "$REPO" --label jules-in-progress --state open --json number --jq 'length')
+          # Retry: right after the previous step removes jules-in-progress,
+          # gh issue list can briefly still return the stale, pre-removal
+          # state (observed ~1 issue read 17ms after the label was removed).
+          # Only treat the lock as genuinely held if it's still there after
+          # a few retries, not just on the very first read.
+          in_progress=1
+          for i in 1 2 3 4 5; do
+            in_progress=$(gh issue list --repo "$REPO" --label jules-in-progress --state open --json number --jq 'length')
+            [ "$in_progress" = "0" ] && break
+            sleep 2
+          done
           if [ "$in_progress" != "0" ]; then
             echo "A Jules session is already in flight, nothing to do."
             echo "found=false" >> "$GITHUB_OUTPUT"
