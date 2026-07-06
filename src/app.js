@@ -5,6 +5,9 @@ function showResult(data) {
     document.getElementById('result-type').textContent = data.prefix || '';
     document.getElementById('result-country').textContent = data.country.toUpperCase();
     container.className = 'result-card success';
+    if (data.source === 'Spotted') {
+      container.classList.add('spotted');
+    }
   } else {
     var raw = document.getElementById('plate-input').value;
     var letters = raw.toUpperCase().replace(/[^A-Z]/g, '');
@@ -49,7 +52,8 @@ function onInput() {
 
   var result = lookupPlate(letters);
   if (result) {
-    showResult({ success: true, prefix: result.prefix, country: result.country, plateCode: result.fullCode });
+    result.success = true;
+    showResult(result);
   } else {
     showResult({ success: false, message: 'Code "' + letters + '" not found' });
   }

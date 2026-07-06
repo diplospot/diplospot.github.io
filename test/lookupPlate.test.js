@@ -51,3 +51,25 @@ test('handles 3 letters correctly when first is NOT a special prefix (it should 
   assert.equal(result.code, 'XZ');
   assert.equal(result.country, 'Australia');
 });
+
+test('looks up a spotted code (GK)', () => {
+  const result = sandbox.lookupPlate('GK');
+  assert.equal(result.country, 'Unknown');
+  assert.equal(result.source, 'Spotted');
+});
+
+test('parses a plate-type prefix followed by a spotted country code (DGK)', () => {
+  const result = sandbox.lookupPlate('DGK');
+  assert.equal(result.prefix, 'Diplomat');
+  assert.equal(result.code, 'GK');
+  assert.equal(result.country, 'Unknown');
+  assert.equal(result.source, 'Spotted');
+});
+
+test('no overlap between OFM_CODES and SPOTTED_CODES', () => {
+  const ofmCodes = Object.keys(sandbox.OFM_CODES);
+  const spottedCodes = Object.keys(sandbox.SPOTTED_CODES);
+  for (const code of spottedCodes) {
+    assert.ok(!ofmCodes.includes(code), `Code ${code} should not be in both OFM_CODES and SPOTTED_CODES`);
+  }
+});

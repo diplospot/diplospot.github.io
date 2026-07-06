@@ -87,6 +87,11 @@ body {
   border: 2px solid #dc2626;
 }
 
+.result-card.success.spotted {
+  background: #451a03;
+  border: 2px solid #f59e0b;
+}
+
 #result-type {
   font-size: 32px;
   font-weight: 600;
@@ -108,6 +113,10 @@ body {
 
 .failure #result-type {
   color: #f87171;
+}
+
+.success.spotted #result-type {
+  color: #fbbf24;
 }
 
 .failure #result-type a {
