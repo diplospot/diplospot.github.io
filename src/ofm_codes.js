@@ -216,6 +216,10 @@ var OFM_CODES = {
   "YZ": { "country": "Azerbaijan", "source": "US State Dept OFM" }
 };
 
+var SPOTTED_CODES = {
+  "GK": { "country": "Unknown", "source": "Spotted" }
+};
+
 var PLATE_PREFIXES = { "D": "Diplomat", "S": "Staff", "C": "Consul" };
 
 function lookupPlate(code) {
@@ -232,7 +236,7 @@ function lookupPlate(code) {
     countryCode = code.substring(0, 2);
   }
 
-  var entry = OFM_CODES[countryCode];
+  var entry = OFM_CODES[countryCode] || SPOTTED_CODES[countryCode];
   if (!entry) return null;
 
   return { prefix: prefix, code: countryCode, country: entry.country, source: entry.source, fullCode: code };
