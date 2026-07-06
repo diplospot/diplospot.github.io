@@ -12,6 +12,9 @@ name: Jules Issue Queue
 #   3. `pull_request: closed` is kept only as a fallback for the case where a
 #      human merges or closes a Jules PR manually (a real user token, so the
 #      event fires normally).
+#   4. After merging, explicitly dispatches deploy.yml, since that same
+#      GITHUB_TOKEN suppression also means deploy.yml's `push` trigger never
+#      sees these merges.
 # Only one Jules session runs at a time, and each new session starts from
 # `main` as of the previous PR's resolution, so there are no stacked/
 # conflicting Jules branches.
@@ -31,6 +34,7 @@ permissions:
   contents: write
   issues: write
   pull-requests: write
+  actions: write
 
 jobs:
   advance-queue:
@@ -49,6 +53,7 @@ jobs:
     steps:
       - name: Wait for checks and merge Jules PR
         if: github.event_name == 'pull_request' && github.event.action != 'closed'
+        id: merge
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -74,6 +79,7 @@ jobs:
           fi
 
           gh pr merge "$PR_URL" --squash --delete-branch
+          echo "merged=true" >> "$GITHUB_OUTPUT"
 
           issue=$(gh issue list --repo "$REPO" --label jules-in-progress --state all --json number --jq '.[0].number // empty')
           if [ -z "$issue" ]; then
@@ -86,6 +92,20 @@ jobs:
           fi
           gh issue close "$issue" --repo "$REPO" || true
           gh issue edit "$issue" --repo "$REPO" --remove-label jules-in-progress
+
+      - name: Trigger site deploy
+        # Merges above happen via GH_TOKEN, and GitHub does not fire the
+        # resulting push event for workflows watching push/pull_request when
+        # the token doing the pushing is GITHUB_TOKEN (same suppression
+        # behavior as issue auto-close). So deploy.yml's `push` trigger never
+        # sees these merges -- dispatch it explicitly instead. Real human
+        # merges (via the UI, with a personal token) still fire `push`
+        # normally, so this is additive, not a duplicate trigger.
+        if: steps.merge.outputs.merged == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: gh workflow run deploy.yml --repo "$REPO" --ref main
 
       - name: Release lock from a manually-closed Jules PR
         if: github.event_name == 'pull_request' && github.event.action == 'closed'

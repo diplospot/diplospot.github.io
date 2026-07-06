@@ -1,5 +1,11 @@
 name: Deploy to GitHub Pages
 
+# Two ways this runs:
+#   - `push` to main: fires for real, human-authored pushes/merges (a real
+#     user token triggers push normally).
+#   - `workflow_dispatch`: explicitly triggered by jules-queue.yml right
+#     after it merges a Jules PR, since those merges use GITHUB_TOKEN and
+#     GitHub does not fire `push` for events caused by GITHUB_TOKEN.
 on:
   push:
     branches: [main]
