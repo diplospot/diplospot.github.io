@@ -4,7 +4,8 @@ function showResult(data) {
   if (data.success) {
     document.getElementById('result-type').textContent = data.prefix || '';
     var flagPrefix = data.flag ? data.flag + ' ' : '';
-    document.getElementById('result-country').textContent = flagPrefix + data.country.toUpperCase();
+    var wikiUrl = 'https://en.wikipedia.org/wiki/Special:Search?search=' + encodeURIComponent(data.country) + '&go=Go';
+    document.getElementById('result-country').innerHTML = '<a href="' + wikiUrl + '" target="_blank" rel="noopener">' + flagPrefix + data.country.toUpperCase() + '</a>';
     container.className = 'result-card success';
     if (data.source === 'Spotted') {
       container.classList.add('spotted');

@@ -134,6 +134,11 @@ body {
   color: #fca5a5;
 }
 
+.success #result-country a {
+  color: inherit;
+  text-decoration: none;
+}
+
 #result-country {
   font-size: clamp(24px, 10vw, 48px);
   font-weight: 700;
