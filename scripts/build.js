@@ -61,14 +61,14 @@ async function build() {
   console.log('Built dist/index.html (%d bytes)', Buffer.byteLength(minifiedHtml));
 
   // Build map.html
-  const MAP_INLINE_SCRIPTS = ['map.js', 'sw-register.js'];
+  const MAP_INLINE_SCRIPTS = ['map.js'];
   const mapJs = MAP_INLINE_SCRIPTS
     .map(file => fs.readFileSync(path.join(SRC, file), 'utf8'))
     .join('\n');
   const minifiedMapJs = (await minifyJs(mapJs)).code;
 
   let mapHtml = fs.readFileSync(path.join(SRC, 'map.html'), 'utf8');
-  const mapScriptPattern = /<script\s+src="map\.js"><\/script>\s*<script\s+src="sw-register\.js"><\/script>/;
+  const mapScriptPattern = /<script\s+src="map\.js"><\/script>/;
 
   if (!cssLinkPattern.test(mapHtml)) throw new Error('build.js: stylesheet <link> not found in src/map.html');
   if (!mapScriptPattern.test(mapHtml)) throw new Error('build.js: script tags not found in src/map.html');
