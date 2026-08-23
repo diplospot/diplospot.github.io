@@ -13,7 +13,16 @@ function showResult(data) {
     var letters = raw.toUpperCase().replace(/[^A-Z]/g, '');
     var searchUrl = 'https://www.google.com/search?q=US+diplomatic+license+plate+starts+with+' + letters;
     document.getElementById('result-type').innerHTML = '<a href="' + searchUrl + '" target="_blank" rel="noopener">NOT RECOGNIZED</a>';
-    document.getElementById('result-country').textContent = '';
+
+    var countryCode = getCountryCode(letters);
+    if (countryCode) {
+      var title = '[Unknown Plate] ' + countryCode + ' plate spotted';
+      var body = 'Spotted a license plate with the code ' + countryCode + '. This is not recognized but should we added to src/ofm_codes.js under SPOTTED_CODES, so that we know that this plate exists, but we don\'t know what it stands for.';
+      var githubUrl = 'https://github.com/nparashuram/diplospot/issues/new?title=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(body);
+      document.getElementById('result-country').innerHTML = '<a href="' + githubUrl + '" target="_blank" rel="noopener">File an issue</a>';
+    } else {
+      document.getElementById('result-country').textContent = '';
+    }
     container.className = 'result-card failure';
   }
 

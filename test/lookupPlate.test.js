@@ -73,3 +73,50 @@ test('no overlap between OFM_CODES and SPOTTED_CODES', () => {
     assert.ok(!ofmCodes.includes(code), `Code ${code} should not be in both OFM_CODES and SPOTTED_CODES`);
   }
 });
+
+test('getCountryCode extracts 2-letter country code from various plate formats', () => {
+  assert.equal(sandbox.getCountryCode('XX'), 'XX');
+  assert.equal(sandbox.getCountryCode('DXX'), 'XX');
+  assert.equal(sandbox.getCountryCode('SXX'), 'XX');
+  assert.equal(sandbox.getCountryCode('CXX'), 'XX');
+  assert.equal(sandbox.getCountryCode('ABC'), 'AB');
+  assert.equal(sandbox.getCountryCode('X'), null);
+});
+
+test('unrecognized plate generates prefilled GitHub issue URL parameters', () => {
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'app.js'), 'utf8');
+
+  // Set up mock DOM
+  const elements = {
+    'result-container': { className: '', classList: { add: () => {}, remove: () => {} } },
+    'result-type': { innerHTML: '', textContent: '' },
+    'result-country': { innerHTML: '', textContent: '' },
+    'plate-input': { value: 'DXX' }
+  };
+
+  const appSandbox = {
+    document: {
+      getElementById: (id) => elements[id],
+      addEventListener: () => {}
+    },
+    getCountryCode: sandbox.getCountryCode,
+    lookupPlate: sandbox.lookupPlate,
+    trySaveLocation: () => {}
+  };
+
+  vm.createContext(appSandbox);
+  vm.runInContext(appSource, appSandbox);
+
+  // Call showResult for unrecognized plate result
+  appSandbox.showResult({ success: false, message: 'Code "DXX" not found' });
+
+  const countryHTML = elements['result-country'].innerHTML;
+  assert.ok(countryHTML.includes('https://github.com/nparashuram/diplospot/issues/new'), 'Should contain GitHub new issue URL');
+  assert.ok(countryHTML.includes('File%20an%20issue') || countryHTML.includes('File an issue'), 'Should contain link text');
+
+  const expectedTitle = encodeURIComponent('[Unknown Plate] XX plate spotted');
+  const expectedBodyPart = encodeURIComponent('Spotted a license plate with the code XX.');
+
+  assert.ok(countryHTML.includes(expectedTitle), 'URL should include prefilled title with extracted code XX');
+  assert.ok(countryHTML.includes(expectedBodyPart), 'URL should include prefilled body with extracted code XX');
+});

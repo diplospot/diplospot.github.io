@@ -222,18 +222,24 @@ var SPOTTED_CODES = {
 
 var PLATE_PREFIXES = { "D": "Diplomat", "S": "Staff", "C": "Consul" };
 
+function getCountryCode(code) {
+  code = code.toUpperCase().replace(/[^A-Z]/g, '');
+  if (code.length < 2) return null;
+  if (code.length >= 3 && PLATE_PREFIXES[code[0]]) {
+    return code.substring(1, 3);
+  }
+  return code.substring(0, 2);
+}
+
 function lookupPlate(code) {
   code = code.toUpperCase().replace(/[^A-Z]/g, '');
   if (code.length < 2) return null;
 
   var prefix = null;
-  var countryCode = null;
+  var countryCode = getCountryCode(code);
 
   if (code.length >= 3 && PLATE_PREFIXES[code[0]]) {
     prefix = PLATE_PREFIXES[code[0]];
-    countryCode = code.substring(1, 3);
-  } else {
-    countryCode = code.substring(0, 2);
   }
 
   var entry = OFM_CODES[countryCode] || SPOTTED_CODES[countryCode];
