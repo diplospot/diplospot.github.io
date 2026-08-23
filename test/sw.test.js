@@ -14,30 +14,34 @@ test('sw-register.js triggers reg.update immediately and on visibilitychange', (
 
   const mockReg = {
     waiting: null,
-    update: () => { updateCalledCount++; },
-    addEventListener: () => {}
+    update: () => {
+      updateCalledCount++;
+    },
+    addEventListener: () => {},
   };
 
   const sandbox = {
     navigator: {
       serviceWorker: {
         register: async () => mockReg,
-        addEventListener: () => {}
-      }
+        addEventListener: () => {},
+      },
     },
     window: {
       addEventListener: (evt, handler) => {
         if (evt === 'load') loadHandler = handler;
-      }
+      },
     },
     document: {
       visibilityState: 'visible',
       addEventListener: (evt, handler) => {
         if (evt === 'visibilitychange') visibilityHandler = handler;
       },
-      getElementById: () => null
+      getElementById: () => null,
     },
-    setInterval: (fn, delay) => { intervalDelay = delay; }
+    setInterval: (fn, delay) => {
+      intervalDelay = delay;
+    },
   };
 
   vm.createContext(sandbox);
@@ -48,18 +52,30 @@ test('sw-register.js triggers reg.update immediately and on visibilitychange', (
 
   // Wait for promise microtask resolution
   return Promise.resolve().then(() => {
-    assert.strictEqual(updateCalledCount, 1, 'reg.update() should be called immediately on registration');
+    assert.strictEqual(
+      updateCalledCount,
+      1,
+      'reg.update() should be called immediately on registration'
+    );
     assert.ok(visibilityHandler, 'visibilitychange event listener should be added');
 
     // Simulate tab becoming visible
     sandbox.document.visibilityState = 'visible';
     visibilityHandler();
-    assert.strictEqual(updateCalledCount, 2, 'reg.update() should be called when document becomes visible');
+    assert.strictEqual(
+      updateCalledCount,
+      2,
+      'reg.update() should be called when document becomes visible'
+    );
 
     // Simulate tab becoming hidden
     sandbox.document.visibilityState = 'hidden';
     visibilityHandler();
-    assert.strictEqual(updateCalledCount, 2, 'reg.update() should NOT be called when document becomes hidden');
+    assert.strictEqual(
+      updateCalledCount,
+      2,
+      'reg.update() should NOT be called when document becomes hidden'
+    );
     assert.ok(intervalDelay > 0, 'should also schedule a periodic update check');
   });
 });
@@ -79,21 +95,25 @@ test('sw-register.js does not reload on the initial controller claim, only on a 
         register: async () => ({ waiting: null, update: () => {}, addEventListener: () => {} }),
         addEventListener: (evt, handler) => {
           if (evt === 'controllerchange') controllerChangeHandler = handler;
-        }
-      }
+        },
+      },
     },
     window: {
       addEventListener: (evt, handler) => {
         if (evt === 'load') loadHandler = handler;
       },
-      location: { reload: () => { reloadCount++; } }
+      location: {
+        reload: () => {
+          reloadCount++;
+        },
+      },
     },
     document: {
       visibilityState: 'visible',
       addEventListener: () => {},
-      getElementById: () => null
+      getElementById: () => null,
     },
-    setInterval: () => {}
+    setInterval: () => {},
   };
 
   vm.createContext(sandbox);
@@ -122,9 +142,9 @@ test('sw-register.js shows the update notification when it receives an UPDATE_RE
   const notificationMock = {
     classList: {
       remove: (c) => notificationClasses.delete(c),
-      add: (c) => notificationClasses.add(c)
+      add: (c) => notificationClasses.add(c),
     },
-    querySelector: (sel) => sel === '.refresh-button' ? { onclick: null } : null
+    querySelector: (sel) => (sel === '.refresh-button' ? { onclick: null } : null),
   };
 
   const sandbox = {
@@ -134,21 +154,21 @@ test('sw-register.js shows the update notification when it receives an UPDATE_RE
         register: async () => ({ waiting: null, update: () => {}, addEventListener: () => {} }),
         addEventListener: (evt, handler) => {
           if (evt === 'message') messageHandler = handler;
-        }
-      }
+        },
+      },
     },
     window: {
       addEventListener: (evt, handler) => {
         if (evt === 'load') loadHandler = handler;
       },
-      location: { reload: () => {} }
+      location: { reload: () => {} },
     },
     document: {
       visibilityState: 'visible',
       addEventListener: () => {},
-      getElementById: (id) => id === 'update-notification' ? notificationMock : null
+      getElementById: (id) => (id === 'update-notification' ? notificationMock : null),
     },
-    setInterval: () => {}
+    setInterval: () => {},
   };
 
   vm.createContext(sandbox);
@@ -158,10 +178,17 @@ test('sw-register.js shows the update notification when it receives an UPDATE_RE
 
   return Promise.resolve().then(() => {
     assert.ok(messageHandler, 'message listener should be added');
-    assert.ok(notificationClasses.has('hidden'), 'notification should be hidden before an update is ready');
+    assert.ok(
+      notificationClasses.has('hidden'),
+      'notification should be hidden before an update is ready'
+    );
 
     messageHandler({ data: { type: 'UPDATE_READY' } });
-    assert.strictEqual(notificationClasses.has('hidden'), false, 'notification should be shown after UPDATE_READY');
+    assert.strictEqual(
+      notificationClasses.has('hidden'),
+      false,
+      'notification should be shown after UPDATE_READY'
+    );
   });
 });
 
@@ -170,8 +197,16 @@ test('built map.html should NOT contain service worker registration or update no
   assert.ok(fs.existsSync(distMap), 'dist/map.html should exist');
 
   const content = fs.readFileSync(distMap, 'utf8');
-  assert.strictEqual(content.includes('navigator.serviceWorker.register'), false, 'map.html should not contain service worker registration');
-  assert.strictEqual(content.includes('id="update-notification"'), false, 'map.html should not contain update notification UI');
+  assert.strictEqual(
+    content.includes('navigator.serviceWorker.register'),
+    false,
+    'map.html should not contain service worker registration'
+  );
+  assert.strictEqual(
+    content.includes('id="update-notification"'),
+    false,
+    'map.html should not contain update notification UI'
+  );
 });
 
 test('built sw.js should have cache-first strategy and version v4', (t) => {
@@ -180,9 +215,16 @@ test('built sw.js should have cache-first strategy and version v4', (t) => {
 
   const content = fs.readFileSync(distSw, 'utf8');
 
-  assert.ok(content.includes('CACHE_NAME="diplospot-v4"') || content.includes("CACHE_NAME = 'diplospot-v4'"), 'Should have updated cache version');
+  assert.ok(
+    content.includes('CACHE_NAME="diplospot-v4"') ||
+      content.includes("CACHE_NAME = 'diplospot-v4'"),
+    'Should have updated cache version'
+  );
   assert.ok(content.includes('caches.match'), 'Should use caches.match');
-  assert.ok(content.includes('response') || /\|\|fetch\(/.test(content), 'Should check for cached response');
+  assert.ok(
+    content.includes('response') || /\|\|fetch\(/.test(content),
+    'Should check for cached response'
+  );
   assert.ok(content.includes('buildinfo.js'), 'buildinfo.js should be in ASSETS');
   assert.ok(content.includes('checkForUpdate'), 'Should contain checkForUpdate function');
   assert.ok(content.includes('refreshAllAssets'), 'Should contain refreshAllAssets function');
@@ -191,8 +233,16 @@ test('built sw.js should have cache-first strategy and version v4', (t) => {
 
   // Verify that inlined scripts are NOT in ASSETS
   assert.strictEqual(content.includes('app.js'), false, 'app.js should not be in ASSETS');
-  assert.strictEqual(content.includes('ofm_codes.js'), false, 'ofm_codes.js should not be in ASSETS');
-  assert.strictEqual(content.includes('sw-register.js'), false, 'sw-register.js should not be in ASSETS');
+  assert.strictEqual(
+    content.includes('ofm_codes.js'),
+    false,
+    'ofm_codes.js should not be in ASSETS'
+  );
+  assert.strictEqual(
+    content.includes('sw-register.js'),
+    false,
+    'sw-register.js should not be in ASSETS'
+  );
 });
 
 test('build should generate buildinfo.js with commit, repoUrl, and builtAt', (t) => {

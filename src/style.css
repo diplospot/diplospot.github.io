@@ -58,7 +58,9 @@ body {
 }
 
 .plate:focus-within {
-  box-shadow: var(--plate-shadow), 0 0 0 3px var(--color-accent);
+  box-shadow:
+    var(--plate-shadow),
+    0 0 0 3px var(--color-accent);
 }
 
 .plate-art {
@@ -171,7 +173,9 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
   border: 1px solid #334155;
   z-index: 100;
   white-space: nowrap;

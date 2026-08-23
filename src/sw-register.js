@@ -4,38 +4,44 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
     var hadController = !!navigator.serviceWorker.controller;
 
-    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(function (reg) {
-      swRegistration = reg;
+    navigator.serviceWorker
+      .register('./sw.js', { updateViaCache: 'none' })
+      .then(function (reg) {
+        swRegistration = reg;
 
-      if (reg.waiting) {
-        showUpdateNotification(reg);
-      }
+        if (reg.waiting) {
+          showUpdateNotification(reg);
+        }
 
-      reg.addEventListener('updatefound', function () {
-        var newWorker = reg.installing;
-        newWorker.addEventListener('statechange', function () {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+        reg.addEventListener('updatefound', function () {
+          var newWorker = reg.installing;
+          newWorker.addEventListener('statechange', function () {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              showUpdateNotification(reg);
+            }
+          });
+        });
+
+        navigator.serviceWorker.addEventListener('message', function (event) {
+          if (event.data && event.data.type === 'UPDATE_READY') {
             showUpdateNotification(reg);
           }
         });
-      });
 
-      navigator.serviceWorker.addEventListener('message', function (event) {
-        if (event.data && event.data.type === 'UPDATE_READY') {
-          showUpdateNotification(reg);
-        }
-      });
-
-      reg.update();
-      document.addEventListener('visibilitychange', function () {
-        if (document.visibilityState === 'visible') {
-          reg.update();
-        }
-      });
-      setInterval(function () {
         reg.update();
-      }, 60 * 60 * 1000);
-    }).catch(function () {});
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'visible') {
+            reg.update();
+          }
+        });
+        setInterval(
+          function () {
+            reg.update();
+          },
+          60 * 60 * 1000
+        );
+      })
+      .catch(function () {});
 
     var refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', function () {

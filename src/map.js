@@ -36,9 +36,9 @@ function renderLocations() {
     tdCountry.textContent = item.country || '';
 
     var tdLatLong = document.createElement('td');
-    var lat = typeof item.latitude === 'number' ? item.latitude.toFixed(4) : (item.latitude || '');
-    var lng = typeof item.longitude === 'number' ? item.longitude.toFixed(4) : (item.longitude || '');
-    tdLatLong.textContent = (lat !== '' && lng !== '') ? (lat + ', ' + lng) : '';
+    var lat = typeof item.latitude === 'number' ? item.latitude.toFixed(4) : item.latitude || '';
+    var lng = typeof item.longitude === 'number' ? item.longitude.toFixed(4) : item.longitude || '';
+    tdLatLong.textContent = lat !== '' && lng !== '' ? lat + ', ' + lng : '';
 
     tr.appendChild(tdTime);
     tr.appendChild(tdCountry);
@@ -71,26 +71,33 @@ function checkGeolocationPermission() {
     }
 
     if (localStorage.getItem('diplospot_geo_granted') === '1') {
-      navigator.geolocation.getCurrentPosition(function () {
-        showTable();
-      }, function () {
-        localStorage.removeItem('diplospot_geo_granted');
-        showPermissionPrompt();
-      }, { timeout: 5000 });
+      navigator.geolocation.getCurrentPosition(
+        function () {
+          showTable();
+        },
+        function () {
+          localStorage.removeItem('diplospot_geo_granted');
+          showPermissionPrompt();
+        },
+        { timeout: 5000 }
+      );
       return;
     }
 
     if ('permissions' in navigator) {
-      navigator.permissions.query({ name: 'geolocation' }).then(function (res) {
-        if (res && res.state === 'granted') {
-          localStorage.setItem('diplospot_geo_granted', '1');
-          showTable();
-        } else {
+      navigator.permissions
+        .query({ name: 'geolocation' })
+        .then(function (res) {
+          if (res && res.state === 'granted') {
+            localStorage.setItem('diplospot_geo_granted', '1');
+            showTable();
+          } else {
+            showPermissionPrompt();
+          }
+        })
+        .catch(function () {
           showPermissionPrompt();
-        }
-      }).catch(function () {
-        showPermissionPrompt();
-      });
+        });
     } else {
       showPermissionPrompt();
     }
@@ -101,10 +108,14 @@ function checkGeolocationPermission() {
 
 function requestPermission() {
   if (!('geolocation' in navigator)) return;
-  navigator.geolocation.getCurrentPosition(function () {
-    localStorage.setItem('diplospot_geo_granted', '1');
-    showTable();
-  }, function () {}, { timeout: 5000 });
+  navigator.geolocation.getCurrentPosition(
+    function () {
+      localStorage.setItem('diplospot_geo_granted', '1');
+      showTable();
+    },
+    function () {},
+    { timeout: 5000 }
+  );
 }
 
 document.addEventListener('DOMContentLoaded', function () {

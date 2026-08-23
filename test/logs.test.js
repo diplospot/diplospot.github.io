@@ -11,7 +11,10 @@ test('dist/logs.html and dist/logs/index.html exist and are minified', () => {
   assert.ok(fs.existsSync(logsDirIndexPath), 'dist/logs/index.html should exist');
 
   const content = fs.readFileSync(logsHtmlPath, 'utf8');
-  assert.ok(content.includes('id="logs-content'), 'logs.html should contain the log output element');
+  assert.ok(
+    content.includes('id="logs-content'),
+    'logs.html should contain the log output element'
+  );
   assert.strictEqual(/\n\s\s+/.test(content), false, 'logs.html should not have indentation');
 });
 
@@ -19,9 +22,13 @@ function createLocalStorageMock(seed) {
   const store = Object.assign({}, seed);
   return {
     getItem: (key) => (key in store ? store[key] : null),
-    setItem: (key, val) => { store[key] = val; },
-    removeItem: (key) => { delete store[key]; },
-    store
+    setItem: (key, val) => {
+      store[key] = val;
+    },
+    removeItem: (key) => {
+      delete store[key];
+    },
+    store,
   };
 }
 
@@ -36,9 +43,11 @@ function createSwLogsSandbox(localStorageSeed) {
     JSON: JSON,
     navigator: {
       serviceWorker: {
-        addEventListener: (evt, fn) => { if (evt === 'message') messageHandler = fn; }
-      }
-    }
+        addEventListener: (evt, fn) => {
+          if (evt === 'message') messageHandler = fn;
+        },
+      },
+    },
   };
 
   vm.createContext(sandbox);
@@ -51,7 +60,9 @@ test('sw-logs.js appends and persists SW_LOG messages, and notifies onSwLog', ()
   const { sandbox, localStorage, sendMessage } = createSwLogsSandbox();
 
   let notified = null;
-  sandbox.onSwLog = (logs) => { notified = logs; };
+  sandbox.onSwLog = (logs) => {
+    notified = logs;
+  };
 
   sendMessage({ type: 'SW_LOG', time: '2026-01-01T00:00:00.000Z', message: 'install: complete' });
 
@@ -77,17 +88,27 @@ test('logs.js renders stored logs and wires Refresh / Clear buttons', () => {
 
   const contentEl = { textContent: '', scrollTop: 0, scrollHeight: 42 };
   const handlers = { document: {}, refresh: null, clear: null };
-  const refreshMock = { addEventListener: (evt, fn) => { if (evt === 'click') handlers.refresh = fn; } };
-  const clearMock = { addEventListener: (evt, fn) => { if (evt === 'click') handlers.clear = fn; } };
+  const refreshMock = {
+    addEventListener: (evt, fn) => {
+      if (evt === 'click') handlers.refresh = fn;
+    },
+  };
+  const clearMock = {
+    addEventListener: (evt, fn) => {
+      if (evt === 'click') handlers.clear = fn;
+    },
+  };
 
   const elements = {
     'logs-content': contentEl,
     'logs-refresh': refreshMock,
-    'logs-clear': clearMock
+    'logs-clear': clearMock,
   };
 
   const localStorage = createLocalStorageMock({
-    'diplospot-sw-logs': JSON.stringify([{ time: '2026-01-01T00:00:00.000Z', message: 'install: complete' }])
+    'diplospot-sw-logs': JSON.stringify([
+      { time: '2026-01-01T00:00:00.000Z', message: 'install: complete' },
+    ]),
   });
 
   const sandbox = {
@@ -96,24 +117,36 @@ test('logs.js renders stored logs and wires Refresh / Clear buttons', () => {
     navigator: { serviceWorker: { addEventListener: () => {} } },
     document: {
       getElementById: (id) => elements[id] || null,
-      addEventListener: (evt, fn) => { handlers.document[evt] = fn; }
-    }
+      addEventListener: (evt, fn) => {
+        handlers.document[evt] = fn;
+      },
+    },
   };
 
   vm.createContext(sandbox);
   vm.runInContext(swLogsJs + '\n' + logsJs, sandbox);
   handlers.document.DOMContentLoaded();
 
-  assert.ok(contentEl.textContent.includes('install: complete'), 'initial render should include the stored log');
+  assert.ok(
+    contentEl.textContent.includes('install: complete'),
+    'initial render should include the stored log'
+  );
 
   localStorage.store['diplospot-sw-logs'] = JSON.stringify([
     { time: '2026-01-01T00:00:00.000Z', message: 'install: complete' },
-    { time: '2026-01-01T00:00:01.000Z', message: 'activate: clients.claim()' }
+    { time: '2026-01-01T00:00:01.000Z', message: 'activate: clients.claim()' },
   ]);
   handlers.refresh();
-  assert.ok(contentEl.textContent.includes('activate: clients.claim()'), 'Refresh should re-read localStorage');
+  assert.ok(
+    contentEl.textContent.includes('activate: clients.claim()'),
+    'Refresh should re-read localStorage'
+  );
 
   handlers.clear();
   assert.equal(contentEl.textContent, 'No logs yet.', 'Clear should empty the log view');
-  assert.equal(JSON.parse(localStorage.store['diplospot-sw-logs']).length, 0, 'Clear should persist an empty list');
+  assert.equal(
+    JSON.parse(localStorage.store['diplospot-sw-logs']).length,
+    0,
+    'Clear should persist an empty list'
+  );
 });

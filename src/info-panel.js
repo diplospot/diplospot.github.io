@@ -4,7 +4,7 @@ var pendingRefreshReload = false;
 function formatBuildInfo(info) {
   if (!info) return 'unknown';
   var built = info.builtAt ? new Date(info.builtAt) : null;
-  var when = built && !isNaN(built.getTime()) ? built.toLocaleString() : (info.builtAt || 'unknown');
+  var when = built && !isNaN(built.getTime()) ? built.toLocaleString() : info.builtAt || 'unknown';
   return (info.commit ? info.commit.substring(0, 7) : 'unknown') + ' (' + when + ')';
 }
 
@@ -28,7 +28,9 @@ function wireModal(modal, closeButton, onOpen) {
   return {
     open: open,
     close: close,
-    isOpen: function () { return !modal.classList.contains('hidden'); }
+    isOpen: function () {
+      return !modal.classList.contains('hidden');
+    },
   };
 }
 

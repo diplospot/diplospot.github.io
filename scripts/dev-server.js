@@ -41,7 +41,7 @@ async function rebuild() {
   try {
     await build();
     console.log('Rebuilt at %s', new Date().toLocaleTimeString());
-    clients.forEach(res => res.write('data: reload\n\n'));
+    clients.forEach((res) => res.write('data: reload\n\n'));
   } catch (err) {
     console.error('Build failed:', err.message);
   } finally {
@@ -71,7 +71,7 @@ const server = http.createServer((req, res) => {
     res.write('\n');
     clients.push(res);
     req.on('close', () => {
-      clients = clients.filter(client => client !== res);
+      clients = clients.filter((client) => client !== res);
     });
     return;
   }
@@ -110,7 +110,7 @@ build()
       console.log(`Dev server running at http://localhost:${PORT}`);
     });
   })
-  .catch(err => {
+  .catch((err) => {
     console.error(err);
     process.exit(1);
   });

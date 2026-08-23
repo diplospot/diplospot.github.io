@@ -70,7 +70,10 @@ test('no overlap between OFM_CODES and SPOTTED_CODES', () => {
   const ofmCodes = Object.keys(sandbox.OFM_CODES);
   const spottedCodes = Object.keys(sandbox.SPOTTED_CODES);
   for (const code of spottedCodes) {
-    assert.ok(!ofmCodes.includes(code), `Code ${code} should not be in both OFM_CODES and SPOTTED_CODES`);
+    assert.ok(
+      !ofmCodes.includes(code),
+      `Code ${code} should not be in both OFM_CODES and SPOTTED_CODES`
+    );
   }
 });
 
@@ -91,17 +94,17 @@ test('unrecognized plate generates prefilled GitHub issue URL parameters', () =>
     'result-container': { className: '', classList: { add: () => {}, remove: () => {} } },
     'result-type': { innerHTML: '', textContent: '' },
     'result-country': { innerHTML: '', textContent: '' },
-    'plate-input': { value: 'DXX' }
+    'plate-input': { value: 'DXX' },
   };
 
   const appSandbox = {
     document: {
       getElementById: (id) => elements[id],
-      addEventListener: () => {}
+      addEventListener: () => {},
     },
     getCountryCode: sandbox.getCountryCode,
     lookupPlate: sandbox.lookupPlate,
-    trySaveLocation: () => {}
+    trySaveLocation: () => {},
   };
 
   vm.createContext(appSandbox);
@@ -111,15 +114,28 @@ test('unrecognized plate generates prefilled GitHub issue URL parameters', () =>
   appSandbox.showResult({ success: false, message: 'Code "DXX" not found' });
 
   const typeHTML = elements['result-type'].innerHTML;
-  assert.ok(typeHTML.includes('https://github.com/diplospot/diplospot.github.io/issues/new'), 'Should contain GitHub new issue URL');
+  assert.ok(
+    typeHTML.includes('https://github.com/diplospot/diplospot.github.io/issues/new'),
+    'Should contain GitHub new issue URL'
+  );
   assert.ok(typeHTML.includes('NOT RECOGNIZED'), 'Should contain link text');
 
   const expectedTitle = encodeURIComponent('[Unknown Plate] XX plate spotted');
   const expectedBodyPart = encodeURIComponent('Spotted a license plate with the code XX.');
 
-  assert.ok(typeHTML.includes(expectedTitle), 'URL should include prefilled title with extracted code XX');
-  assert.ok(typeHTML.includes(expectedBodyPart), 'URL should include prefilled body with extracted code XX');
-  assert.strictEqual(elements['result-country'].textContent, '', 'result-country should be empty on failure');
+  assert.ok(
+    typeHTML.includes(expectedTitle),
+    'URL should include prefilled title with extracted code XX'
+  );
+  assert.ok(
+    typeHTML.includes(expectedBodyPart),
+    'URL should include prefilled body with extracted code XX'
+  );
+  assert.strictEqual(
+    elements['result-country'].textContent,
+    '',
+    'result-country should be empty on failure'
+  );
 });
 
 function setupOnInputSandbox() {
@@ -129,29 +145,34 @@ function setupOnInputSandbox() {
   const inputEl = {
     value: '',
     maxLength: 3,
-    blur: () => { blurred = true; },
-    focus: () => {}
+    blur: () => {
+      blurred = true;
+    },
+    focus: () => {},
   };
   const elements = {
     'result-container': { className: '', classList: { add: () => {}, remove: () => {} } },
     'result-type': { innerHTML: '', textContent: '' },
     'result-country': { innerHTML: '', textContent: '' },
-    'plate-input': inputEl
+    'plate-input': inputEl,
   };
 
   const appSandbox = {
     document: {
       getElementById: (id) => elements[id],
-      addEventListener: () => {}
-    }
+      addEventListener: () => {},
+    },
   };
   vm.createContext(appSandbox);
   vm.runInContext(source, appSandbox);
   vm.runInContext(appSource, appSandbox);
 
   return {
-    setValue: (value) => { inputEl.value = value; appSandbox.onInput(); },
-    wasBlurred: () => blurred
+    setValue: (value) => {
+      inputEl.value = value;
+      appSandbox.onInput();
+    },
+    wasBlurred: () => blurred,
   };
 }
 
@@ -172,7 +193,11 @@ test('loses focus after typing 3 letters when the first letter is C, D, or S', (
   assert.equal(wasBlurred(), false, 'should not blur after 1 letter');
 
   setValue('DC');
-  assert.equal(wasBlurred(), false, 'should not blur after 2 letters when first letter is a plate prefix');
+  assert.equal(
+    wasBlurred(),
+    false,
+    'should not blur after 2 letters when first letter is a plate prefix'
+  );
 
   setValue('DCY');
   assert.equal(wasBlurred(), true, 'should blur after 3 letters');
@@ -188,18 +213,22 @@ test('focusing the plate input hides the map link and selects all text, blurring
     value: '',
     maxLength: 3,
     blur: () => {},
-    select: () => { selectCallCount++; },
-    focus: () => { if (focusHandler) focusHandler(); },
+    select: () => {
+      selectCallCount++;
+    },
+    focus: () => {
+      if (focusHandler) focusHandler();
+    },
     addEventListener: (evt, handler) => {
       if (evt === 'focus') focusHandler = handler;
       if (evt === 'blur') blurHandler = handler;
-    }
+    },
   };
   const mapLinkEl = {
     classList: {
       add: (c) => mapLinkClasses.add(c),
-      remove: (c) => mapLinkClasses.delete(c)
-    }
+      remove: (c) => mapLinkClasses.delete(c),
+    },
   };
   const elements = { 'plate-input': inputEl, 'map-link': mapLinkEl };
 
@@ -207,15 +236,20 @@ test('focusing the plate input hides the map link and selects all text, blurring
   const appSandbox = {
     document: {
       getElementById: (id) => elements[id],
-      addEventListener: (evt, handler) => { if (evt === 'DOMContentLoaded') domReadyHandler = handler; }
-    }
+      addEventListener: (evt, handler) => {
+        if (evt === 'DOMContentLoaded') domReadyHandler = handler;
+      },
+    },
   };
   vm.createContext(appSandbox);
   vm.runInContext(source, appSandbox);
   vm.runInContext(appSource, appSandbox);
   domReadyHandler();
 
-  assert.ok(mapLinkClasses.has('hidden'), 'map link should be hidden once the input auto-focuses on load');
+  assert.ok(
+    mapLinkClasses.has('hidden'),
+    'map link should be hidden once the input auto-focuses on load'
+  );
   assert.equal(selectCallCount, 1, 'input text should be selected when the input is focused');
 
   blurHandler();

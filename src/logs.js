@@ -5,9 +5,13 @@ document.addEventListener('DOMContentLoaded', function () {
   if (!contentEl) return;
 
   function render() {
-    contentEl.textContent = swLogs.length ? swLogs.map(function (e) {
-      return '[' + e.time + '] ' + e.message;
-    }).join('\n') : 'No logs yet.';
+    contentEl.textContent = swLogs.length
+      ? swLogs
+          .map(function (e) {
+            return '[' + e.time + '] ' + e.message;
+          })
+          .join('\n')
+      : 'No logs yet.';
     contentEl.scrollTop = contentEl.scrollHeight;
   }
 

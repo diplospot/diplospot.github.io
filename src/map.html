@@ -1,49 +1,51 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>DiploSpot - Map</title>
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="DiploSpot">
-  <meta name="theme-color" content="#0a0a0a">
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="icon" href="favicon.ico" sizes="any">
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <div class="map-container">
-    <div class="map-header">
-      <a href="./" class="back-link">← Home</a>
-      <h1 class="map-title">Map</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>DiploSpot - Map</title>
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="DiploSpot" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <link rel="icon" href="favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="map-container">
+      <div class="map-header">
+        <a href="./" class="back-link">← Home</a>
+        <h1 class="map-title">Map</h1>
+      </div>
+
+      <div id="permission-prompt" class="permission-card hidden">
+        <p class="permission-text">
+          We need your geolocation permission to locally save your location when you spot a plate.
+          Data is only saved locally, and nothing is sent to a server.
+        </p>
+        <button id="enable-location-btn" class="permission-button">Enable Location Access</button>
+      </div>
+
+      <div class="table-wrapper hidden">
+        <table id="locations-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Country</th>
+              <th>Lat/Long</th>
+            </tr>
+          </thead>
+          <tbody id="locations-body"></tbody>
+        </table>
+        <div id="no-locations" class="hidden">No saved locations found.</div>
+      </div>
     </div>
 
-    <div id="permission-prompt" class="permission-card hidden">
-      <p class="permission-text">We need your geolocation permission to locally save your location when you spot a plate. Data is only saved locally, and nothing is sent to a server.</p>
-      <button id="enable-location-btn" class="permission-button">Enable Location Access</button>
-    </div>
-
-    <div class="table-wrapper hidden">
-      <table id="locations-table">
-        <thead>
-          <tr>
-            <th>Timestamp</th>
-            <th>Country</th>
-            <th>Lat/Long</th>
-          </tr>
-        </thead>
-        <tbody id="locations-body">
-        </tbody>
-      </table>
-      <div id="no-locations" class="hidden">No saved locations found.</div>
-    </div>
-  </div>
-
-  <script src="map.js"></script>
-</body>
+    <script src="map.js"></script>
+  </body>
 </html>

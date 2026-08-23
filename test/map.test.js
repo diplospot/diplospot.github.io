@@ -7,7 +7,10 @@ const vm = require('node:vm');
 test('index.html contains fixed relative Map link', () => {
   const content = fs.readFileSync(path.join(__dirname, '../dist/index.html'), 'utf8');
   assert.ok(content.includes('id="map-link"'), 'index.html should have map-link element');
-  assert.ok(content.includes('href="./map"') || content.includes('href="map"'), 'map-link should point to relative map path');
+  assert.ok(
+    content.includes('href="./map"') || content.includes('href="map"'),
+    'map-link should point to relative map path'
+  );
   assert.ok(!content.includes('href="/map"'), 'map-link should not point to absolute /map path');
   assert.ok(content.includes('Map'), 'map-link should contain Map text');
   assert.ok(content.includes('position:fixed'), 'map-link CSS should be position:fixed');
@@ -28,9 +31,13 @@ function createLocalStorageMock(seed) {
   const store = Object.assign({}, seed);
   return {
     getItem: (key) => (key in store ? store[key] : null),
-    setItem: (key, val) => { store[key] = val; },
-    removeItem: (key) => { delete store[key]; },
-    store
+    setItem: (key, val) => {
+      store[key] = val;
+    },
+    removeItem: (key) => {
+      delete store[key];
+    },
+    store,
   };
 }
 
@@ -47,16 +54,16 @@ test('trySaveLocation saves location when previously granted (localStorage flag 
         getCurrentPosition: (successCb) => {
           positionRequested = true;
           successCb({ coords: { latitude: 37.7749, longitude: -122.4194 } });
-        }
-      }
+        },
+      },
     },
     localStorage,
     Date: Date,
     JSON: JSON,
     document: {
       getElementById: () => null,
-      addEventListener: () => {}
-    }
+      addEventListener: () => {},
+    },
   };
 
   vm.createContext(sandbox);
@@ -64,7 +71,10 @@ test('trySaveLocation saves location when previously granted (localStorage flag 
 
   sandbox.trySaveLocation('France');
 
-  assert.ok(positionRequested, 'getCurrentPosition should have been called without a permissions.query check');
+  assert.ok(
+    positionRequested,
+    'getCurrentPosition should have been called without a permissions.query check'
+  );
   const parsed = JSON.parse(localStorage.store.diplospot_locations);
   assert.equal(parsed.length, 1);
   assert.equal(parsed[0].country, 'France');
@@ -82,13 +92,15 @@ test('trySaveLocation does nothing when never previously granted', async () => {
   const sandbox = {
     navigator: {
       geolocation: {
-        getCurrentPosition: () => { positionRequested = true; }
-      }
+        getCurrentPosition: () => {
+          positionRequested = true;
+        },
+      },
     },
     localStorage,
     Date: Date,
     JSON: JSON,
-    document: { getElementById: () => null, addEventListener: () => {} }
+    document: { getElementById: () => null, addEventListener: () => {} },
   };
 
   vm.createContext(sandbox);
@@ -96,8 +108,16 @@ test('trySaveLocation does nothing when never previously granted', async () => {
 
   sandbox.trySaveLocation('France');
 
-  assert.equal(positionRequested, false, 'getCurrentPosition should not be called without a prior grant');
-  assert.equal(localStorage.store.diplospot_locations, undefined, 'localStorage should not be updated');
+  assert.equal(
+    positionRequested,
+    false,
+    'getCurrentPosition should not be called without a prior grant'
+  );
+  assert.equal(
+    localStorage.store.diplospot_locations,
+    undefined,
+    'localStorage should not be updated'
+  );
 });
 
 function createMapSandbox(navigator, localStorageSeed) {
@@ -105,16 +125,25 @@ function createMapSandbox(navigator, localStorageSeed) {
 
   const promptClassList = new Set();
   const tableWrapperClassList = new Set();
-  const promptMock = { classList: { add: (c) => promptClassList.add(c), remove: (c) => promptClassList.delete(c) } };
-  const tableWrapperMock = { classList: { add: (c) => tableWrapperClassList.add(c), remove: (c) => tableWrapperClassList.delete(c) } };
+  const promptMock = {
+    classList: { add: (c) => promptClassList.add(c), remove: (c) => promptClassList.delete(c) },
+  };
+  const tableWrapperMock = {
+    classList: {
+      add: (c) => tableWrapperClassList.add(c),
+      remove: (c) => tableWrapperClassList.delete(c),
+    },
+  };
 
   const elements = {
     'permission-prompt': promptMock,
     'locations-body': { innerHTML: '', appendChild: () => {} },
-    'no-locations': { classList: { add: () => {}, remove: () => {} } }
+    'no-locations': { classList: { add: () => {}, remove: () => {} } },
   };
 
-  const localStorage = createLocalStorageMock(Object.assign({ diplospot_locations: '[]' }, localStorageSeed));
+  const localStorage = createLocalStorageMock(
+    Object.assign({ diplospot_locations: '[]' }, localStorageSeed)
+  );
 
   const sandbox = {
     navigator,
@@ -124,10 +153,10 @@ function createMapSandbox(navigator, localStorageSeed) {
     isNaN: isNaN,
     document: {
       getElementById: (id) => elements[id] || null,
-      querySelector: (sel) => sel === '.table-wrapper' ? tableWrapperMock : null,
+      querySelector: (sel) => (sel === '.table-wrapper' ? tableWrapperMock : null),
       createElement: () => ({ appendChild: () => {} }),
-      addEventListener: () => {}
-    }
+      addEventListener: () => {},
+    },
   };
 
   vm.createContext(sandbox);
@@ -139,61 +168,99 @@ function createMapSandbox(navigator, localStorageSeed) {
 test('map.js shows the permission prompt when there is no prior grant and permissions.query is unavailable (e.g. iOS Safari)', async () => {
   let positionRequested = false;
   const { sandbox, promptClassList, tableWrapperClassList } = createMapSandbox({
-    geolocation: { getCurrentPosition: () => { positionRequested = true; } }
+    geolocation: {
+      getCurrentPosition: () => {
+        positionRequested = true;
+      },
+    },
   });
 
   sandbox.checkGeolocationPermission();
-  await new Promise(resolve => setTimeout(resolve, 50));
+  await new Promise((resolve) => setTimeout(resolve, 50));
 
   assert.equal(positionRequested, false, 'getCurrentPosition should not be called automatically');
-  assert.equal(promptClassList.has('hidden'), false, 'permission-prompt should NOT have hidden class');
+  assert.equal(
+    promptClassList.has('hidden'),
+    false,
+    'permission-prompt should NOT have hidden class'
+  );
   assert.equal(tableWrapperClassList.has('hidden'), true, 'table-wrapper SHOULD have hidden class');
 });
 
 test('map.js remembers a prior grant and skips the prompt on later visits without permissions.query', async () => {
   let positionRequested = false;
-  const { sandbox, promptClassList, tableWrapperClassList } = createMapSandbox({
-    geolocation: {
-      getCurrentPosition: (successCb) => {
-        positionRequested = true;
-        successCb({ coords: { latitude: 0, longitude: 0 } });
-      }
-    }
-  }, { diplospot_geo_granted: '1' });
+  const { sandbox, promptClassList, tableWrapperClassList } = createMapSandbox(
+    {
+      geolocation: {
+        getCurrentPosition: (successCb) => {
+          positionRequested = true;
+          successCb({ coords: { latitude: 0, longitude: 0 } });
+        },
+      },
+    },
+    { diplospot_geo_granted: '1' }
+  );
 
   sandbox.checkGeolocationPermission();
-  await new Promise(resolve => setTimeout(resolve, 50));
+  await new Promise((resolve) => setTimeout(resolve, 50));
 
   assert.ok(positionRequested, 'should silently retry geolocation using the remembered grant');
   assert.equal(promptClassList.has('hidden'), true, 'permission-prompt SHOULD have hidden class');
-  assert.equal(tableWrapperClassList.has('hidden'), false, 'table-wrapper should NOT have hidden class');
+  assert.equal(
+    tableWrapperClassList.has('hidden'),
+    false,
+    'table-wrapper should NOT have hidden class'
+  );
 });
 
 test('map.js clears a stale grant and shows the prompt if a remembered grant no longer works', async () => {
-  const { sandbox, promptClassList, tableWrapperClassList, localStorage } = createMapSandbox({
-    geolocation: { getCurrentPosition: (successCb, errorCb) => { errorCb(); } }
-  }, { diplospot_geo_granted: '1' });
+  const { sandbox, promptClassList, tableWrapperClassList, localStorage } = createMapSandbox(
+    {
+      geolocation: {
+        getCurrentPosition: (successCb, errorCb) => {
+          errorCb();
+        },
+      },
+    },
+    { diplospot_geo_granted: '1' }
+  );
 
   sandbox.checkGeolocationPermission();
-  await new Promise(resolve => setTimeout(resolve, 50));
+  await new Promise((resolve) => setTimeout(resolve, 50));
 
-  assert.equal(localStorage.store.diplospot_geo_granted, undefined, 'stale grant flag should be cleared');
-  assert.equal(promptClassList.has('hidden'), false, 'permission-prompt should NOT have hidden class');
+  assert.equal(
+    localStorage.store.diplospot_geo_granted,
+    undefined,
+    'stale grant flag should be cleared'
+  );
+  assert.equal(
+    promptClassList.has('hidden'),
+    false,
+    'permission-prompt should NOT have hidden class'
+  );
   assert.equal(tableWrapperClassList.has('hidden'), true, 'table-wrapper SHOULD have hidden class');
 });
 
 test('map.js shows table and remembers the grant when permissions.query reports granted', async () => {
   const { sandbox, promptClassList, tableWrapperClassList, localStorage } = createMapSandbox({
     geolocation: {},
-    permissions: { query: async () => ({ state: 'granted' }) }
+    permissions: { query: async () => ({ state: 'granted' }) },
   });
 
   sandbox.checkGeolocationPermission();
-  await new Promise(resolve => setTimeout(resolve, 50));
+  await new Promise((resolve) => setTimeout(resolve, 50));
 
   assert.equal(promptClassList.has('hidden'), true, 'permission-prompt SHOULD have hidden class');
-  assert.equal(tableWrapperClassList.has('hidden'), false, 'table-wrapper should NOT have hidden class');
-  assert.equal(localStorage.store.diplospot_geo_granted, '1', 'should remember the grant for future visits');
+  assert.equal(
+    tableWrapperClassList.has('hidden'),
+    false,
+    'table-wrapper should NOT have hidden class'
+  );
+  assert.equal(
+    localStorage.store.diplospot_geo_granted,
+    '1',
+    'should remember the grant for future visits'
+  );
 });
 
 test('clicking enable location button triggers getCurrentPosition, shows table, and remembers the grant', async () => {
@@ -203,14 +270,26 @@ test('clicking enable location button triggers getCurrentPosition, shows table, 
       getCurrentPosition: (successCb) => {
         positionRequested = true;
         successCb({ coords: { latitude: 0, longitude: 0 } });
-      }
-    }
+      },
+    },
   });
 
   sandbox.requestPermission();
 
   assert.ok(positionRequested, 'getCurrentPosition should be called on button click');
-  assert.equal(promptClassList.has('hidden'), true, 'permission-prompt should be hidden after grant');
-  assert.equal(tableWrapperClassList.has('hidden'), false, 'table-wrapper should be visible after grant');
-  assert.equal(localStorage.store.diplospot_geo_granted, '1', 'should remember the grant for future visits');
+  assert.equal(
+    promptClassList.has('hidden'),
+    true,
+    'permission-prompt should be hidden after grant'
+  );
+  assert.equal(
+    tableWrapperClassList.has('hidden'),
+    false,
+    'table-wrapper should be visible after grant'
+  );
+  assert.equal(
+    localStorage.store.diplospot_geo_granted,
+    '1',
+    'should remember the grant for future visits'
+  );
 });

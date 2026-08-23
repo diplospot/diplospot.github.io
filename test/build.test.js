@@ -6,7 +6,11 @@ const path = require('node:path');
 test('dist/index.html is minified', () => {
   const content = fs.readFileSync(path.join(__dirname, '../dist/index.html'), 'utf8');
   // Check for lack of indentation (multiple spaces or tabs at start of line)
-  assert.strictEqual(/\n\s\s+/.test(content), false, 'index.html should not have multiple spaces for indentation');
+  assert.strictEqual(
+    /\n\s\s+/.test(content),
+    false,
+    'index.html should not have multiple spaces for indentation'
+  );
   assert.strictEqual(content.includes('\n\n'), false, 'index.html should not have double newlines');
 });
 
