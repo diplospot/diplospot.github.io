@@ -16,6 +16,11 @@ To build the project:
 npm run build
 ```
 
+To start a local dev server that rebuilds and auto-refreshes the browser on source changes:
+```bash
+npm start
+```
+
 To run tests:
 ```bash
 npm test

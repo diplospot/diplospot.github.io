@@ -90,7 +90,11 @@ async function build() {
   console.log('Built dist/map.html & dist/map/index.html (%d bytes)', Buffer.byteLength(minifiedMapHtml));
 }
 
-build().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module) {
+  build().catch(err => {
+    console.error(err);
+    process.exit(1);
+  });
+}
+
+module.exports = { build };
