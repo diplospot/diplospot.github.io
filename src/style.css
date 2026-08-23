@@ -213,6 +213,85 @@ body {
   z-index: 10;
 }
 
+#info-button {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+#info-button:hover {
+  color: var(--color-text);
+}
+
+#info-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.info-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.6);
+}
+
+.info-modal-content {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.info-modal-content h2 {
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+.info-modal-content p {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+  word-break: break-all;
+}
+
+.info-modal-content a {
+  color: var(--color-accent);
+}
+
+.info-modal-content .refresh-button {
+  margin-top: 4px;
+}
+
+#info-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#info-modal-close:hover {
+  color: var(--color-text);
+}
+
 #map-link:hover {
   color: var(--color-text);
 }

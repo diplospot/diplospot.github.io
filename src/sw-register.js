@@ -1,8 +1,12 @@
+var swRegistration = null;
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
     var hadController = !!navigator.serviceWorker.controller;
 
     navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(function (reg) {
+      swRegistration = reg;
+
       if (reg.waiting) {
         showUpdateNotification(reg);
       }

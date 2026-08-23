@@ -1,11 +1,14 @@
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 const { minify: minifyJs } = require('terser');
 const CleanCSS = require('clean-css');
 const { minify: minifyHtml } = require('html-minifier-terser');
 
 const SRC = path.join(__dirname, '..', 'src');
 const DIST = path.join(__dirname, '..', 'dist');
+const REPO_ROOT = path.join(__dirname, '..');
+const DEFAULT_REPO_URL = 'https://github.com/diplospot/diplospot.github.io';
 
 const COPY_FILES = [
   'manifest.json',
@@ -16,13 +19,31 @@ const COPY_FILES = [
   'icon-512.png',
 ];
 
-const INLINE_SCRIPTS = ['ofm_codes.js', 'app.js', 'sw-register.js'];
+const INLINE_SCRIPTS = ['ofm_codes.js', 'app.js', 'info-panel.js', 'sw-register.js'];
 
 const CSS_LINK_PATTERN = /<link\s+rel="stylesheet"\s+href="style\.css">/;
 
+function git(args) {
+  return execFileSync('git', args, { cwd: REPO_ROOT }).toString().trim();
+}
+
+function getBuildInfo() {
+  let commit = 'unknown';
+  let repoUrl = DEFAULT_REPO_URL;
+  try {
+    commit = git(['rev-parse', 'HEAD']);
+  } catch (e) {}
+  try {
+    repoUrl = git(['config', '--get', 'remote.origin.url'])
+      .replace(/^git@github\.com:/, 'https://github.com/')
+      .replace(/\.git$/, '');
+  } catch (e) {}
+  return { commit, repoUrl, builtAt: new Date().toISOString() };
+}
+
 // Builds one HTML page: inlines its <script src> tags and stylesheet link,
 // minifies the result, and writes it to every path in outputPaths.
-async function buildPage(htmlFile, scripts, scriptPattern, minifiedCss, outputPaths) {
+async function buildPage(htmlFile, scripts, scriptPattern, minifiedCss, outputPaths, extraReplacements) {
   const js = scripts
     .map(file => fs.readFileSync(path.join(SRC, file), 'utf8'))
     .join('\n');
@@ -32,6 +53,10 @@ async function buildPage(htmlFile, scripts, scriptPattern, minifiedCss, outputPa
 
   if (!CSS_LINK_PATTERN.test(html)) throw new Error(`build.js: stylesheet <link> not found in src/${htmlFile}`);
   if (!scriptPattern.test(html)) throw new Error(`build.js: script tags not found in src/${htmlFile}`);
+
+  for (const [pattern, replacement] of extraReplacements || []) {
+    html = html.replace(pattern, replacement);
+  }
 
   html = html.replace(CSS_LINK_PATTERN, `<style>${minifiedCss}</style>`);
   html = html.replace(scriptPattern, `<script>${minifiedJs}</script>`);
@@ -68,9 +93,12 @@ async function build() {
   const css = fs.readFileSync(path.join(SRC, 'style.css'), 'utf8');
   const minifiedCss = new CleanCSS({}).minify(css).styles;
 
-  const scriptTagsPattern = /<script\s+src="ofm_codes\.js"><\/script>\s*<script\s+src="app\.js"><\/script>\s*<script\s+src="sw-register\.js"><\/script>/;
+  const buildInfo = getBuildInfo();
+  const scriptTagsPattern = /<script\s+src="ofm_codes\.js"><\/script>\s*<script\s+src="app\.js"><\/script>\s*<script\s+src="info-panel\.js"><\/script>\s*<script\s+src="sw-register\.js"><\/script>/;
   await buildPage('index.html', INLINE_SCRIPTS, scriptTagsPattern, minifiedCss, [
     path.join(DIST, 'index.html'),
+  ], [
+    [/"__BUILD_INFO__"/, JSON.stringify(buildInfo)],
   ]);
 
   const mapScriptPattern = /<script\s+src="map\.js"><\/script>/;

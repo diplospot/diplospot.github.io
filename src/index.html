@@ -39,8 +39,25 @@
 
   <a href="./map" id="map-link">🗺️ Map</a>
 
+  <button id="info-button" aria-label="About this build">❓</button>
+
+  <div id="info-modal" class="hidden">
+    <div class="info-modal-backdrop"></div>
+    <div class="info-modal-content">
+      <button id="info-modal-close" aria-label="Close">✕</button>
+      <h2>About DiploSpot</h2>
+      <p><strong>Repository</strong><br><a id="info-repo-link" href="#" target="_blank" rel="noopener"></a></p>
+      <p><strong>Built</strong><br><span id="info-built-at"></span></p>
+      <p><strong>Commit</strong><br><a id="info-commit-link" href="#" target="_blank" rel="noopener"></a></p>
+      <p><strong>Status</strong><br><span id="info-update-status">Checking&hellip;</span></p>
+      <button id="info-force-refresh" class="refresh-button">Force Refresh</button>
+    </div>
+  </div>
+
+  <script id="build-info" type="application/json">"__BUILD_INFO__"</script>
   <script src="ofm_codes.js"></script>
   <script src="app.js"></script>
+  <script src="info-panel.js"></script>
   <script src="sw-register.js"></script>
 </body>
 </html>
