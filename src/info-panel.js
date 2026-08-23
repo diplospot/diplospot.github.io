@@ -1,11 +1,44 @@
 var serverBuildEl = null;
 var pendingRefreshReload = false;
 
+function formatDate(d) {
+  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var month = months[d.getMonth()];
+  var day = d.getDate();
+  var year = d.getFullYear();
+  var hours = d.getHours();
+  var ampm = hours >= 12 ? 'pm' : 'am';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  var minutes = d.getMinutes();
+  minutes = minutes < 10 ? '0' + minutes : minutes;
+  var seconds = d.getSeconds();
+  seconds = seconds < 10 ? '0' + seconds : seconds;
+  return month + ' ' + day + ', ' + year + ' ' + hours + ':' + minutes + ':' + seconds + ampm;
+}
+
 function formatBuildInfo(info) {
   if (!info) return 'unknown';
   var built = info.builtAt ? new Date(info.builtAt) : null;
-  var when = built && !isNaN(built.getTime()) ? built.toLocaleString() : info.builtAt || 'unknown';
-  return (info.commit ? info.commit.substring(0, 7) : 'unknown') + ' (' + when + ')';
+  var when = built && !isNaN(built.getTime()) ? formatDate(built) : info.builtAt || 'unknown';
+  var shortCommit = info.commit ? info.commit.substring(0, 7) : 'unknown';
+  if (when === 'unknown' && shortCommit === 'unknown') return 'unknown';
+
+  var repoUrl =
+    info.repoUrl ||
+    (typeof window !== 'undefined' && window.BUILD_INFO && window.BUILD_INFO.repoUrl) ||
+    'https://github.com/diplospot/diplospot.github.io';
+  var commitHtml = info.commit
+    ? '<a href="' +
+      repoUrl +
+      '/commit/' +
+      info.commit +
+      '" target="_blank" rel="noopener">' +
+      shortCommit +
+      '</a>'
+    : shortCommit;
+
+  return when + ' ' + commitHtml;
 }
 
 // Wires a modal's close button + backdrop click to hide it, and returns
@@ -48,10 +81,10 @@ if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
     var data = event.data;
     if (!data) return;
     if (data.type === 'BUILD_STATUS') {
-      if (serverBuildEl) serverBuildEl.textContent = formatBuildInfo(data.remote);
+      if (serverBuildEl) serverBuildEl.innerHTML = formatBuildInfo(data.remote);
       pendingRefreshReload = false;
     } else if (data.type === 'UPDATE_READY') {
-      if (serverBuildEl) serverBuildEl.textContent = formatBuildInfo(data.buildInfo);
+      if (serverBuildEl) serverBuildEl.innerHTML = formatBuildInfo(data.buildInfo);
       if (pendingRefreshReload) {
         pendingRefreshReload = false;
         window.location.reload();
@@ -70,8 +103,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (!button || !modal) return;
 
   var repoLink = document.getElementById('info-repo-link');
-  var builtAtEl = document.getElementById('info-built-at');
-  var commitLink = document.getElementById('info-commit-link');
+  var localBuildEl = document.getElementById('info-local-build');
   var statusEl = document.getElementById('info-update-status');
   var refreshButton = document.getElementById('info-force-refresh');
   var buildInfo = getBuildInfo();
@@ -83,13 +115,8 @@ document.addEventListener('DOMContentLoaded', function () {
         repoLink.href = buildInfo.repoUrl;
         repoLink.textContent = buildInfo.repoUrl;
       }
-      if (builtAtEl) {
-        var built = new Date(buildInfo.builtAt);
-        builtAtEl.textContent = isNaN(built.getTime()) ? buildInfo.builtAt : built.toLocaleString();
-      }
-      if (commitLink) {
-        commitLink.href = buildInfo.repoUrl + '/commit/' + buildInfo.commit;
-        commitLink.textContent = buildInfo.commit.substring(0, 7);
+      if (localBuildEl) {
+        localBuildEl.innerHTML = formatBuildInfo(buildInfo);
       }
     }
 
