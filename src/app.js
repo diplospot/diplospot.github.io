@@ -3,7 +3,8 @@ function showResult(data) {
 
   if (data.success) {
     document.getElementById('result-type').textContent = data.prefix || '';
-    document.getElementById('result-country').textContent = data.country.toUpperCase();
+    var flagPrefix = data.flag ? data.flag + ' ' : '';
+    document.getElementById('result-country').textContent = flagPrefix + data.country.toUpperCase();
     container.className = 'result-card success';
     if (data.source === 'Spotted') {
       container.classList.add('spotted');
