@@ -16,3 +16,10 @@ test('dist/sw.js is minified', () => {
   assert.strictEqual(content.includes('  '), false, 'sw.js should not have double spaces');
   assert.strictEqual(content.includes('\n'), false, 'sw.js should be a single line');
 });
+
+test('favicon.ico exists in src and dist', () => {
+  const srcIcoExists = fs.existsSync(path.join(__dirname, '../src/favicon.ico'));
+  const distIcoExists = fs.existsSync(path.join(__dirname, '../dist/favicon.ico'));
+  assert.strictEqual(srcIcoExists, true, 'src/favicon.ico should exist');
+  assert.strictEqual(distIcoExists, true, 'dist/favicon.ico should exist');
+});

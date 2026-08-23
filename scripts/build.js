@@ -12,6 +12,7 @@ const DEFAULT_REPO_URL = 'https://github.com/diplospot/diplospot.github.io';
 
 const COPY_FILES = [
   'manifest.json',
+  'favicon.ico',
   'favicon-16.png',
   'favicon-32.png',
   'favicon.png',
