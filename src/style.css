@@ -124,6 +124,16 @@ body {
   text-decoration: none;
 }
 
+.failure #result-country a {
+  color: #f87171;
+  text-decoration: underline;
+  font-size: 24px;
+}
+
+.failure #result-country a:hover {
+  color: #fca5a5;
+}
+
 #result-country {
   font-size: clamp(24px, 10vw, 48px);
   font-weight: 700;
