@@ -124,16 +124,6 @@ body {
   text-decoration: none;
 }
 
-.failure #result-country a {
-  color: #f87171;
-  text-decoration: underline;
-  font-size: 24px;
-}
-
-.failure #result-country a:hover {
-  color: #fca5a5;
-}
-
 .success #result-country a {
   color: inherit;
   text-decoration: none;

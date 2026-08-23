@@ -110,13 +110,14 @@ test('unrecognized plate generates prefilled GitHub issue URL parameters', () =>
   // Call showResult for unrecognized plate result
   appSandbox.showResult({ success: false, message: 'Code "DXX" not found' });
 
-  const countryHTML = elements['result-country'].innerHTML;
-  assert.ok(countryHTML.includes('https://github.com/nparashuram/diplospot/issues/new'), 'Should contain GitHub new issue URL');
-  assert.ok(countryHTML.includes('File%20an%20issue') || countryHTML.includes('File an issue'), 'Should contain link text');
+  const typeHTML = elements['result-type'].innerHTML;
+  assert.ok(typeHTML.includes('https://github.com/nparashuram/diplospot/issues/new'), 'Should contain GitHub new issue URL');
+  assert.ok(typeHTML.includes('NOT RECOGNIZED'), 'Should contain link text');
 
   const expectedTitle = encodeURIComponent('[Unknown Plate] XX plate spotted');
   const expectedBodyPart = encodeURIComponent('Spotted a license plate with the code XX.');
 
-  assert.ok(countryHTML.includes(expectedTitle), 'URL should include prefilled title with extracted code XX');
-  assert.ok(countryHTML.includes(expectedBodyPart), 'URL should include prefilled body with extracted code XX');
+  assert.ok(typeHTML.includes(expectedTitle), 'URL should include prefilled title with extracted code XX');
+  assert.ok(typeHTML.includes(expectedBodyPart), 'URL should include prefilled body with extracted code XX');
+  assert.strictEqual(elements['result-country'].textContent, '', 'result-country should be empty on failure');
 });
