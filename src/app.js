@@ -39,9 +39,9 @@ function onInput() {
   var raw = input.value;
   var letters = raw.toUpperCase().replace(/[^A-Z]/g, '');
 
+  var isSpecial = letters.length > 0 && (letters[0] === 'C' || letters[0] === 'D' || letters[0] === 'S');
+
   if (letters.length > 0) {
-    var firstLetter = letters[0];
-    var isSpecial = firstLetter === 'C' || firstLetter === 'D' || firstLetter === 'S';
     if (!isSpecial) {
       input.maxLength = 2;
       if (letters.length > 2) {
@@ -53,6 +53,10 @@ function onInput() {
     }
   } else {
     input.maxLength = 3;
+  }
+
+  if (letters.length >= (isSpecial ? 3 : 2)) {
+    input.blur();
   }
 
   if (letters.length < 2) {
@@ -95,6 +99,14 @@ function trySaveLocation(country) {
 
 document.addEventListener('DOMContentLoaded', function () {
   var input = document.getElementById('plate-input');
+  var mapLink = document.getElementById('map-link');
   input.addEventListener('input', onInput);
+  input.addEventListener('focus', function () {
+    mapLink.classList.add('hidden');
+    input.select();
+  });
+  input.addEventListener('blur', function () {
+    mapLink.classList.remove('hidden');
+  });
   input.focus();
 });

@@ -121,3 +121,106 @@ test('unrecognized plate generates prefilled GitHub issue URL parameters', () =>
   assert.ok(typeHTML.includes(expectedBodyPart), 'URL should include prefilled body with extracted code XX');
   assert.strictEqual(elements['result-country'].textContent, '', 'result-country should be empty on failure');
 });
+
+function setupOnInputSandbox() {
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'app.js'), 'utf8');
+
+  let blurred = false;
+  const inputEl = {
+    value: '',
+    maxLength: 3,
+    blur: () => { blurred = true; },
+    focus: () => {}
+  };
+  const elements = {
+    'result-container': { className: '', classList: { add: () => {}, remove: () => {} } },
+    'result-type': { innerHTML: '', textContent: '' },
+    'result-country': { innerHTML: '', textContent: '' },
+    'plate-input': inputEl
+  };
+
+  const appSandbox = {
+    document: {
+      getElementById: (id) => elements[id],
+      addEventListener: () => {}
+    }
+  };
+  vm.createContext(appSandbox);
+  vm.runInContext(source, appSandbox);
+  vm.runInContext(appSource, appSandbox);
+
+  return {
+    setValue: (value) => { inputEl.value = value; appSandbox.onInput(); },
+    wasBlurred: () => blurred
+  };
+}
+
+test('loses focus after typing 2 letters when the first letter is not C, D, or S', () => {
+  const { setValue, wasBlurred } = setupOnInputSandbox();
+
+  setValue('X');
+  assert.equal(wasBlurred(), false, 'should not blur after 1 letter');
+
+  setValue('XZ');
+  assert.equal(wasBlurred(), true, 'should blur after 2 letters');
+});
+
+test('loses focus after typing 3 letters when the first letter is C, D, or S', () => {
+  const { setValue, wasBlurred } = setupOnInputSandbox();
+
+  setValue('D');
+  assert.equal(wasBlurred(), false, 'should not blur after 1 letter');
+
+  setValue('DC');
+  assert.equal(wasBlurred(), false, 'should not blur after 2 letters when first letter is a plate prefix');
+
+  setValue('DCY');
+  assert.equal(wasBlurred(), true, 'should blur after 3 letters');
+});
+
+test('focusing the plate input hides the map link and selects all text, blurring restores the link', () => {
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'app.js'), 'utf8');
+
+  let focusHandler, blurHandler;
+  let selectCallCount = 0;
+  const mapLinkClasses = new Set();
+  const inputEl = {
+    value: '',
+    maxLength: 3,
+    blur: () => {},
+    select: () => { selectCallCount++; },
+    focus: () => { if (focusHandler) focusHandler(); },
+    addEventListener: (evt, handler) => {
+      if (evt === 'focus') focusHandler = handler;
+      if (evt === 'blur') blurHandler = handler;
+    }
+  };
+  const mapLinkEl = {
+    classList: {
+      add: (c) => mapLinkClasses.add(c),
+      remove: (c) => mapLinkClasses.delete(c)
+    }
+  };
+  const elements = { 'plate-input': inputEl, 'map-link': mapLinkEl };
+
+  let domReadyHandler;
+  const appSandbox = {
+    document: {
+      getElementById: (id) => elements[id],
+      addEventListener: (evt, handler) => { if (evt === 'DOMContentLoaded') domReadyHandler = handler; }
+    }
+  };
+  vm.createContext(appSandbox);
+  vm.runInContext(source, appSandbox);
+  vm.runInContext(appSource, appSandbox);
+  domReadyHandler();
+
+  assert.ok(mapLinkClasses.has('hidden'), 'map link should be hidden once the input auto-focuses on load');
+  assert.equal(selectCallCount, 1, 'input text should be selected when the input is focused');
+
+  blurHandler();
+  assert.ok(!mapLinkClasses.has('hidden'), 'map link should be visible once the input blurs');
+
+  focusHandler();
+  assert.ok(mapLinkClasses.has('hidden'), 'map link should hide again when the input is focused');
+});
