@@ -39,7 +39,7 @@ function onInput() {
   var raw = input.value;
   var letters = raw.toUpperCase().replace(/[^A-Z]/g, '');
 
-  var isSpecial = letters.length > 0 && (letters[0] === 'C' || letters[0] === 'D' || letters[0] === 'S');
+  var isSpecial = letters.length > 0 && !!PLATE_PREFIXES[letters[0]];
 
   if (letters.length > 0) {
     if (!isSpecial) {

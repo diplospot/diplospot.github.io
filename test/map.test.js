@@ -116,13 +116,11 @@ test('trySaveLocation does nothing when geolocation permission is prompt or deni
   assert.equal(savedStorage, null, 'localStorage should not be updated');
 });
 
-test('map.js shows permission prompt and hides table when permission is prompt or denied', async () => {
+function createMapSandbox(navigator) {
   const mapJsSource = fs.readFileSync(path.join(__dirname, '../src/map.js'), 'utf8');
 
-  let positionRequested = false;
-  const promptClassList = new Set(['hidden']);
+  const promptClassList = new Set();
   const tableWrapperClassList = new Set();
-
   const promptMock = { classList: { add: (c) => promptClassList.add(c), remove: (c) => promptClassList.delete(c) } };
   const tableWrapperMock = { classList: { add: (c) => tableWrapperClassList.add(c), remove: (c) => tableWrapperClassList.delete(c) } };
 
@@ -133,14 +131,7 @@ test('map.js shows permission prompt and hides table when permission is prompt o
   };
 
   const sandbox = {
-    navigator: {
-      geolocation: {
-        getCurrentPosition: () => { positionRequested = true; }
-      },
-      permissions: {
-        query: async () => ({ state: 'prompt' })
-      }
-    },
+    navigator,
     localStorage: { getItem: () => '[]' },
     Date: Date,
     JSON: JSON,
@@ -155,6 +146,16 @@ test('map.js shows permission prompt and hides table when permission is prompt o
 
   vm.createContext(sandbox);
   vm.runInContext(mapJsSource, sandbox);
+
+  return { sandbox, promptClassList, tableWrapperClassList };
+}
+
+test('map.js shows permission prompt and hides table when permission is prompt or denied', async () => {
+  let positionRequested = false;
+  const { sandbox, promptClassList, tableWrapperClassList } = createMapSandbox({
+    geolocation: { getCurrentPosition: () => { positionRequested = true; } },
+    permissions: { query: async () => ({ state: 'prompt' }) }
+  });
 
   sandbox.checkGeolocationPermission();
   await new Promise(resolve => setTimeout(resolve, 50));
@@ -165,41 +166,10 @@ test('map.js shows permission prompt and hides table when permission is prompt o
 });
 
 test('map.js shows table and hides permission prompt when permission is granted', async () => {
-  const mapJsSource = fs.readFileSync(path.join(__dirname, '../src/map.js'), 'utf8');
-
-  const promptClassList = new Set();
-  const tableWrapperClassList = new Set(['hidden']);
-
-  const promptMock = { classList: { add: (c) => promptClassList.add(c), remove: (c) => promptClassList.delete(c) } };
-  const tableWrapperMock = { classList: { add: (c) => tableWrapperClassList.add(c), remove: (c) => tableWrapperClassList.delete(c) } };
-
-  const elements = {
-    'permission-prompt': promptMock,
-    'locations-body': { innerHTML: '', appendChild: () => {} },
-    'no-locations': { classList: { add: () => {}, remove: () => {} } }
-  };
-
-  const sandbox = {
-    navigator: {
-      geolocation: {},
-      permissions: {
-        query: async () => ({ state: 'granted' })
-      }
-    },
-    localStorage: { getItem: () => '[]' },
-    Date: Date,
-    JSON: JSON,
-    isNaN: isNaN,
-    document: {
-      getElementById: (id) => elements[id] || null,
-      querySelector: (sel) => sel === '.table-wrapper' ? tableWrapperMock : null,
-      createElement: () => ({ appendChild: () => {} }),
-      addEventListener: () => {}
-    }
-  };
-
-  vm.createContext(sandbox);
-  vm.runInContext(mapJsSource, sandbox);
+  const { sandbox, promptClassList, tableWrapperClassList } = createMapSandbox({
+    geolocation: {},
+    permissions: { query: async () => ({ state: 'granted' }) }
+  });
 
   sandbox.checkGeolocationPermission();
   await new Promise(resolve => setTimeout(resolve, 50));
@@ -209,44 +179,15 @@ test('map.js shows table and hides permission prompt when permission is granted'
 });
 
 test('clicking enable location button triggers getCurrentPosition and shows table on success', async () => {
-  const mapJsSource = fs.readFileSync(path.join(__dirname, '../src/map.js'), 'utf8');
-
   let positionRequested = false;
-  const promptClassList = new Set();
-  const tableWrapperClassList = new Set(['hidden']);
-
-  const promptMock = { classList: { add: (c) => promptClassList.add(c), remove: (c) => promptClassList.delete(c) } };
-  const tableWrapperMock = { classList: { add: (c) => tableWrapperClassList.add(c), remove: (c) => tableWrapperClassList.delete(c) } };
-
-  const elements = {
-    'permission-prompt': promptMock,
-    'locations-body': { innerHTML: '', appendChild: () => {} },
-    'no-locations': { classList: { add: () => {}, remove: () => {} } }
-  };
-
-  const sandbox = {
-    navigator: {
-      geolocation: {
-        getCurrentPosition: (successCb) => {
-          positionRequested = true;
-          successCb({ coords: { latitude: 0, longitude: 0 } });
-        }
+  const { sandbox, promptClassList, tableWrapperClassList } = createMapSandbox({
+    geolocation: {
+      getCurrentPosition: (successCb) => {
+        positionRequested = true;
+        successCb({ coords: { latitude: 0, longitude: 0 } });
       }
-    },
-    localStorage: { getItem: () => '[]' },
-    Date: Date,
-    JSON: JSON,
-    isNaN: isNaN,
-    document: {
-      getElementById: (id) => elements[id] || null,
-      querySelector: (sel) => sel === '.table-wrapper' ? tableWrapperMock : null,
-      createElement: () => ({ appendChild: () => {} }),
-      addEventListener: () => {}
     }
-  };
-
-  vm.createContext(sandbox);
-  vm.runInContext(mapJsSource, sandbox);
+  });
 
   sandbox.requestPermission();
 
