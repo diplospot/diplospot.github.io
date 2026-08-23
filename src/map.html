@@ -21,7 +21,12 @@
       <h1 class="map-title">Map</h1>
     </div>
 
-    <div class="table-wrapper">
+    <div id="permission-prompt" class="permission-card hidden">
+      <p class="permission-text">We need your geolocation permission to locally save your location when you spot a plate. Data is only saved locally, and nothing is sent to a server.</p>
+      <button id="enable-location-btn" class="permission-button">Enable Location Access</button>
+    </div>
+
+    <div class="table-wrapper hidden">
       <table id="locations-table">
         <thead>
           <tr>
