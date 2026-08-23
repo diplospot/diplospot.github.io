@@ -273,3 +273,37 @@ body {
   text-align: center;
   color: #666;
 }
+
+.permission-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  padding: 20px;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 8px;
+}
+
+.permission-text {
+  color: #ccc;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.permission-button {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.permission-button:hover {
+  background: #1d4ed8;
+}

@@ -47,25 +47,57 @@ function renderLocations() {
   }
 }
 
-function checkAndRequestGeolocation() {
+function showTable() {
+  var promptEl = document.getElementById('permission-prompt');
+  var tableWrapper = document.querySelector('.table-wrapper');
+  if (promptEl) promptEl.classList.add('hidden');
+  if (tableWrapper) tableWrapper.classList.remove('hidden');
+  renderLocations();
+}
+
+function showPermissionPrompt() {
+  var promptEl = document.getElementById('permission-prompt');
+  var tableWrapper = document.querySelector('.table-wrapper');
+  if (promptEl) promptEl.classList.remove('hidden');
+  if (tableWrapper) tableWrapper.classList.add('hidden');
+}
+
+function checkGeolocationPermission() {
   try {
-    if (!('geolocation' in navigator)) return;
+    if (!('geolocation' in navigator)) {
+      showPermissionPrompt();
+      return;
+    }
 
     if ('permissions' in navigator) {
       navigator.permissions.query({ name: 'geolocation' }).then(function (res) {
-        if (res && res.state !== 'granted') {
-          navigator.geolocation.getCurrentPosition(function () {}, function () {}, { timeout: 5000 });
+        if (res && res.state === 'granted') {
+          showTable();
+        } else {
+          showPermissionPrompt();
         }
       }).catch(function () {
-        navigator.geolocation.getCurrentPosition(function () {}, function () {}, { timeout: 5000 });
+        showPermissionPrompt();
       });
     } else {
-      navigator.geolocation.getCurrentPosition(function () {}, function () {}, { timeout: 5000 });
+      showPermissionPrompt();
     }
-  } catch (e) {}
+  } catch (e) {
+    showPermissionPrompt();
+  }
+}
+
+function requestPermission() {
+  if (!('geolocation' in navigator)) return;
+  navigator.geolocation.getCurrentPosition(function () {
+    showTable();
+  }, function () {}, { timeout: 5000 });
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  renderLocations();
-  checkAndRequestGeolocation();
+  var btn = document.getElementById('enable-location-btn');
+  if (btn) {
+    btn.addEventListener('click', requestPermission);
+  }
+  checkGeolocationPermission();
 });
