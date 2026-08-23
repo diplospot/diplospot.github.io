@@ -13,6 +13,16 @@ if ('serviceWorker' in navigator) {
           }
         });
       });
+
+      // Check for a new version now, and again whenever the tab regains focus.
+      // Fire-and-forget: registration already happens on window 'load', after the
+      // cache-first fetch handler has served the page, so this can't delay first paint.
+      reg.update();
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') {
+          reg.update();
+        }
+      });
     });
 
     var refreshing;
