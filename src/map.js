@@ -70,9 +70,20 @@ function checkGeolocationPermission() {
       return;
     }
 
+    if (localStorage.getItem('diplospot_geo_granted') === '1') {
+      navigator.geolocation.getCurrentPosition(function () {
+        showTable();
+      }, function () {
+        localStorage.removeItem('diplospot_geo_granted');
+        showPermissionPrompt();
+      }, { timeout: 5000 });
+      return;
+    }
+
     if ('permissions' in navigator) {
       navigator.permissions.query({ name: 'geolocation' }).then(function (res) {
         if (res && res.state === 'granted') {
+          localStorage.setItem('diplospot_geo_granted', '1');
           showTable();
         } else {
           showPermissionPrompt();
@@ -91,6 +102,7 @@ function checkGeolocationPermission() {
 function requestPermission() {
   if (!('geolocation' in navigator)) return;
   navigator.geolocation.getCurrentPosition(function () {
+    localStorage.setItem('diplospot_geo_granted', '1');
     showTable();
   }, function () {}, { timeout: 5000 });
 }

@@ -77,23 +77,20 @@ function onInput() {
 
 function trySaveLocation(country) {
   try {
-    if (!('geolocation' in navigator) || !('permissions' in navigator)) return;
-    navigator.permissions.query({ name: 'geolocation' }).then(function (res) {
-      if (res && res.state === 'granted') {
-        navigator.geolocation.getCurrentPosition(function (position) {
-          try {
-            var locations = JSON.parse(localStorage.getItem('diplospot_locations') || '[]');
-            locations.push({
-              timestamp: new Date().toISOString(),
-              country: country,
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude
-            });
-            localStorage.setItem('diplospot_locations', JSON.stringify(locations));
-          } catch (e) {}
-        }, function () {}, { timeout: 5000 });
-      }
-    }).catch(function () {});
+    if (!('geolocation' in navigator)) return;
+    if (localStorage.getItem('diplospot_geo_granted') !== '1') return;
+    navigator.geolocation.getCurrentPosition(function (position) {
+      try {
+        var locations = JSON.parse(localStorage.getItem('diplospot_locations') || '[]');
+        locations.push({
+          timestamp: new Date().toISOString(),
+          country: country,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        });
+        localStorage.setItem('diplospot_locations', JSON.stringify(locations));
+      } catch (e) {}
+    }, function () {}, { timeout: 5000 });
   } catch (e) {}
 }
 
