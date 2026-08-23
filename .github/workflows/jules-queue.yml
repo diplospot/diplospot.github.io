@@ -195,6 +195,7 @@ jobs:
             echo
             echo "Requirements:"
             echo "- Include \"Closes #$ISSUE_NUMBER\" in the pull request description so it auto-closes on merge."
+            echo "- MANDATORY, LAST STEP BEFORE SUBMITTING: run \`npm run format\` on the whole repo and include any resulting changes in your commit. This is not optional — CI runs \`npm run format:check\` and the required build check WILL FAIL, blocking your PR from merging, if anything is unformatted."
             echo "- Run \`npm run build\` and make sure it passes before submitting."
             echo "- Add or update tests covering the change where practical."
             echo "$delimiter"
