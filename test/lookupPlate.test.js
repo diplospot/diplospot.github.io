@@ -111,7 +111,7 @@ test('unrecognized plate generates prefilled GitHub issue URL parameters', () =>
   appSandbox.showResult({ success: false, message: 'Code "DXX" not found' });
 
   const typeHTML = elements['result-type'].innerHTML;
-  assert.ok(typeHTML.includes('https://github.com/nparashuram/diplospot/issues/new'), 'Should contain GitHub new issue URL');
+  assert.ok(typeHTML.includes('https://github.com/diplospot/diplospot.github.io/issues/new'), 'Should contain GitHub new issue URL');
   assert.ok(typeHTML.includes('NOT RECOGNIZED'), 'Should contain link text');
 
   const expectedTitle = encodeURIComponent('[Unknown Plate] XX plate spotted');

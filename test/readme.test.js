@@ -8,6 +8,6 @@ test('README.md exists and contains the GitHub Pages link', () => {
   assert.ok(fs.existsSync(readmePath), 'README.md should exist');
 
   const content = fs.readFileSync(readmePath, 'utf8');
-  const expectedLink = 'https://nparashuram.github.io/diplospot/';
+  const expectedLink = 'https://diplospot.github.io/';
   assert.ok(content.includes(expectedLink), `README.md should contain the link: ${expectedLink}`);
 });
