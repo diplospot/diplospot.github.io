@@ -198,6 +198,11 @@ body {
   transition: background 0.2s;
 }
 
+a.refresh-button {
+  text-decoration: none;
+  display: inline-block;
+}
+
 .refresh-button:hover {
   background: var(--color-accent-hover);
 }
@@ -285,6 +290,7 @@ body {
 }
 
 .info-modal-content .refresh-button {
+  color: var(--color-text);
   margin-top: 4px;
 }
 

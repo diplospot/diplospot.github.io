@@ -349,3 +349,15 @@ test('View Logs is a real link that opens in a new tab, not a JS modal', () => {
     'logs modal markup should no longer exist'
   );
 });
+
+test('style.css ensures refresh-button text inside info-modal-content matches force refresh text color', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'style.css'), 'utf8');
+  assert.ok(
+    /\.info-modal-content\s+\.refresh-button\s*\{[^}]*color:\s*var\(--color-text\)/.test(css),
+    '.info-modal-content .refresh-button should explicitly set color to var(--color-text)'
+  );
+  assert.ok(
+    /a\.refresh-button\s*\{[^}]*text-decoration:\s*none/.test(css),
+    'a.refresh-button should set text-decoration: none'
+  );
+});
