@@ -1,6 +1,8 @@
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./sw.js').then(function (reg) {
+    var hadController = !!navigator.serviceWorker.controller;
+
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(function (reg) {
       if (reg.waiting) {
         showUpdateNotification(reg);
       }
@@ -14,22 +16,26 @@ if ('serviceWorker' in navigator) {
         });
       });
 
-      // Check for a new version now, and again whenever the tab regains focus.
-      // Fire-and-forget: registration already happens on window 'load', after the
-      // cache-first fetch handler has served the page, so this can't delay first paint.
       reg.update();
       document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'visible') {
           reg.update();
         }
       });
-    });
+      setInterval(function () {
+        reg.update();
+      }, 60 * 60 * 1000);
+    }).catch(function () {});
 
-    var refreshing;
+    var refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', function () {
       if (refreshing) return;
-      window.location.reload();
+      if (!hadController) {
+        hadController = true;
+        return;
+      }
       refreshing = true;
+      window.location.reload();
     });
   });
 }

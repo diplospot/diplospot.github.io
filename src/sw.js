@@ -1,4 +1,4 @@
-var CACHE_NAME = 'diplospot-v2';
+var CACHE_NAME = 'diplospot-v3';
 var ASSETS = [
   './',
   './index.html',
@@ -13,7 +13,9 @@ var ASSETS = [
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
-      return cache.addAll(ASSETS);
+      return Promise.all(ASSETS.map(function (url) {
+        return cache.add(url).catch(function () {});
+      }));
     })
   );
 });
@@ -44,7 +46,7 @@ self.addEventListener('fetch', function (event) {
         var responseToCache = networkResponse.clone();
         caches.open(CACHE_NAME).then(function (cache) {
           cache.put(event.request, responseToCache);
-        });
+        }).catch(function () {});
         return networkResponse;
       });
     })
