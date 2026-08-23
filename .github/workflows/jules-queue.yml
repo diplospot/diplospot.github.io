@@ -74,7 +74,24 @@ jobs:
           # "build" is the only required check (branch protection), so this
           # only waits on that.
           if ! gh pr checks "$PR_URL" --watch --required --fail-fast; then
-            echo "Checks failed (or were cancelled) for PR #$PR_NUMBER, leaving it open for review."
+            issue=$(gh issue list --repo "$REPO" --label jules-in-progress --state all --json number --jq '.[0].number // empty')
+            if [ -z "$issue" ] || ! grep -qiE "(close[sd]?|fix(e[sd])?|resolve[sd]?) +#$issue\b" <<<"$PR_BODY"; then
+              echo "Checks failed for PR #$PR_NUMBER, leaving it open for review."
+              exit 0
+            fi
+
+            # Only one automatic retry per issue -- if Jules already had one
+            # shot at fixing a failure here and it failed again, stop and
+            # leave it for a human rather than retrying forever.
+            already_retried=$(gh issue view "$issue" --repo "$REPO" --json labels --jq '[.labels[].name] | any(. == "jules-fix-attempted")')
+            if [ "$already_retried" = "true" ]; then
+              echo "Checks failed again for PR #$PR_NUMBER after a retry, leaving it open for review."
+              exit 0
+            fi
+
+            echo "Checks failed for PR #$PR_NUMBER, asking Jules to fix it (one automatic retry allowed)."
+            gh issue edit "$issue" --repo "$REPO" --add-label jules-fix-attempted
+            echo "retry=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -91,7 +108,49 @@ jobs:
             exit 0
           fi
           gh issue close "$issue" --repo "$REPO" || true
-          gh issue edit "$issue" --repo "$REPO" --remove-label jules-in-progress
+          gh issue edit "$issue" --repo "$REPO" --remove-label jules-in-progress --remove-label jules-fix-attempted || true
+
+      - name: Build retry prompt
+        if: steps.merge.outputs.retry == 'true'
+        id: retry-prompt
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          run_id=$(gh run list --repo "$REPO" --workflow=ci.yml --branch "$BRANCH" --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          if [ -n "$run_id" ]; then
+            failure_log=$(gh run view "$run_id" --repo "$REPO" --log-failed 2>&1 | sed -E 's/\x1b\[[0-9;]*[a-zA-Z]//g' | tail -c 6000)
+          else
+            failure_log="(could not locate the failing CI run's logs)"
+          fi
+
+          delimiter=$(openssl rand -hex 20)
+          {
+            echo "prompt<<$delimiter"
+            echo "This is a RETRY, not a new task. Your pull request $PR_URL (branch \`$BRANCH\`) failed the required \"build\" CI check."
+            echo
+            echo "Here is the log output from the failing step(s):"
+            echo '```'
+            echo "$failure_log"
+            echo '```'
+            echo
+            echo "Please:"
+            echo "1. Analyze the failure above and identify the root cause."
+            echo "2. Fix it directly on this same branch (\`$BRANCH\`) -- do not open a new PR."
+            echo "3. Run \`npm run format\`, \`npm run build\`, and \`npm test\` locally and confirm all three pass before finishing."
+            echo "$delimiter"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Ask Jules to fix the failing checks
+        if: steps.merge.outputs.retry == 'true'
+        uses: google-labs-code/jules-action@v1.0.0
+        with:
+          prompt: ${{ steps.retry-prompt.outputs.prompt }}
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          starting_branch: ${{ github.event.pull_request.head.ref }}
+          include_last_commit: true
 
       - name: Trigger site deploy
         # Merges above happen via GH_TOKEN, and GitHub does not fire the
@@ -127,7 +186,7 @@ jobs:
             echo "This PR doesn't reference the locked issue #$issue, leaving the lock alone."
             exit 0
           fi
-          gh issue edit "$issue" --repo "$REPO" --remove-label jules-in-progress
+          gh issue edit "$issue" --repo "$REPO" --remove-label jules-in-progress --remove-label jules-fix-attempted || true
           if [ "$MERGED" != "true" ]; then
             gh issue edit "$issue" --repo "$REPO" --add-label jules-failed
             gh issue comment "$issue" --repo "$REPO" --body "Jules' pull request was closed without merging. Add \`triage-send-to-bot\` again to retry."
