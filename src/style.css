@@ -6,6 +6,8 @@
   --color-text-muted: #999;
   --color-accent: #2563eb;
   --color-accent-hover: #1d4ed8;
+  --plate-ink: #16233f;
+  --plate-shadow: 0 10px 30px rgb(0 0 0 / 0.5);
 }
 
 * {
@@ -44,32 +46,57 @@ body {
   margin-top: -12px;
 }
 
-#plate-input {
+.plate {
+  position: relative;
   width: 100%;
-  font-size: 48px;
-  font-weight: 700;
-  text-align: center;
-  letter-spacing: 8px;
-  text-transform: uppercase;
-  padding: 20px;
-  line-height: 1.2;
-  border-radius: 12px;
-  border: 2px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text);
-  outline: none;
-  caret-color: var(--color-accent);
+  aspect-ratio: 2 / 1;
+  border-radius: 22px;
+  border: 10px solid #f2f2ec;
+  background: #a9d3ea;
+  box-shadow: var(--plate-shadow);
+  overflow: hidden;
 }
 
-#plate-input:focus {
-  border-color: var(--color-accent);
+.plate:focus-within {
+  box-shadow: var(--plate-shadow), 0 0 0 3px var(--color-accent);
+}
+
+.plate-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+#plate-input {
+  position: absolute;
+  top: 30%;
+  bottom: 10%;
+  left: 6%;
+  right: 6%;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+  font-family: 'American Typewriter', Georgia, 'Times New Roman', 'Liberation Serif', serif;
+  font-size: clamp(28px, 13vw, 60px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--plate-ink);
+  caret-color: var(--plate-ink);
 }
 
 #plate-input::placeholder {
-  font-size: 24px;
-  letter-spacing: 2px;
-  color: #555;
-  font-weight: 400;
+  font-size: 0.45em;
+  letter-spacing: 0.05em;
+  color: rgb(22 35 63 / 0.4);
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
 }
 
 .hidden {
@@ -82,24 +109,8 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 24px 12px;
-  border-radius: 12px;
+  padding: 12px;
   text-align: center;
-}
-
-.result-card.success {
-  background: #052e16;
-  border: 2px solid #16a34a;
-}
-
-.result-card.failure {
-  background: #1c0a0a;
-  border: 2px solid #dc2626;
-}
-
-.result-card.success.spotted {
-  background: #451a03;
-  border: 2px solid #f59e0b;
 }
 
 #result-type {
