@@ -185,3 +185,91 @@ body {
 .refresh-button:hover {
   background: #1d4ed8;
 }
+
+#map-link {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #999;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 10;
+}
+
+#map-link:hover {
+  color: #fff;
+}
+
+.map-container {
+  width: 100%;
+  max-width: 600px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 16px;
+}
+
+.map-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.back-link {
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.map-title {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.table-wrapper {
+  width: 100%;
+  max-height: 65vh;
+  overflow-y: auto;
+  border: 1px solid #333;
+  border-radius: 8px;
+}
+
+#locations-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+#locations-table th,
+#locations-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #222;
+  font-size: 14px;
+}
+
+#locations-table th {
+  background: #111;
+  position: sticky;
+  top: 0;
+  color: #999;
+  font-weight: 600;
+  z-index: 1;
+}
+
+#no-locations {
+  padding: 24px;
+  text-align: center;
+  color: #666;
+}

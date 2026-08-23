@@ -54,9 +54,33 @@ function onInput() {
   if (result) {
     result.success = true;
     showResult(result);
+    trySaveLocation(result.country);
   } else {
     showResult({ success: false, message: 'Code "' + letters + '" not found' });
+    trySaveLocation('Unknown');
   }
+}
+
+function trySaveLocation(country) {
+  try {
+    if (!('geolocation' in navigator) || !('permissions' in navigator)) return;
+    navigator.permissions.query({ name: 'geolocation' }).then(function (res) {
+      if (res && res.state === 'granted') {
+        navigator.geolocation.getCurrentPosition(function (position) {
+          try {
+            var locations = JSON.parse(localStorage.getItem('diplospot_locations') || '[]');
+            locations.push({
+              timestamp: new Date().toISOString(),
+              country: country,
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            });
+            localStorage.setItem('diplospot_locations', JSON.stringify(locations));
+          } catch (e) {}
+        }, function () {}, { timeout: 5000 });
+      }
+    }).catch(function () {});
+  } catch (e) {}
 }
 
 document.addEventListener('DOMContentLoaded', function () {

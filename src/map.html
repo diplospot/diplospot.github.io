@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>DiploSpot</title>
+  <title>DiploSpot - Map</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="DiploSpot">
@@ -15,13 +15,25 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="app">
-    <input type="text" id="plate-input" maxlength="3" minlength="2" placeholder="Enter letters..." autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" data-form-type="other">
-    <p class="instructions">Type the first 2 or 3 letters from a US diplomatic license plate</p>
+  <div class="map-container">
+    <div class="map-header">
+      <a href="./" class="back-link">← Home</a>
+      <h1 class="map-title">Map</h1>
+    </div>
 
-    <div id="result-container" class="result-card hidden">
-      <p id="result-type"></p>
-      <p id="result-country"></p>
+    <div class="table-wrapper">
+      <table id="locations-table">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Country</th>
+            <th>Lat/Long</th>
+          </tr>
+        </thead>
+        <tbody id="locations-body">
+        </tbody>
+      </table>
+      <div id="no-locations" class="hidden">No saved locations found.</div>
     </div>
   </div>
 
@@ -30,10 +42,7 @@
     <button class="refresh-button">Refresh</button>
   </div>
 
-  <a href="/map" id="map-link">🗺️ Map</a>
-
-  <script src="ofm_codes.js"></script>
-  <script src="app.js"></script>
+  <script src="map.js"></script>
   <script src="sw-register.js"></script>
 </body>
 </html>
