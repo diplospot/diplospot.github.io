@@ -273,8 +273,35 @@ body {
   color: var(--color-accent);
 }
 
+.button-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
 .info-modal-content .refresh-button {
   margin-top: 4px;
+}
+
+.button-row .refresh-button {
+  margin-top: 0;
+}
+
+.logs-content-full {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: rgb(0 0 0 / 0.3);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 12px;
+  color: var(--color-text-muted);
 }
 
 #info-modal-close {

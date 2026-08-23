@@ -48,16 +48,20 @@
       <button id="info-modal-close" aria-label="Close">✕</button>
       <h2>About DiploSpot</h2>
       <p><strong>Repository</strong><br><a id="info-repo-link" href="#" target="_blank" rel="noopener"></a></p>
-      <p><strong>Built</strong><br><span id="info-built-at"></span></p>
-      <p><strong>Commit</strong><br><a id="info-commit-link" href="#" target="_blank" rel="noopener"></a></p>
+      <p><strong>Local build</strong><br><span id="info-built-at"></span> &middot; <a id="info-commit-link" href="#" target="_blank" rel="noopener"></a></p>
+      <p><strong>Server build</strong><br><span id="info-server-build">Checking&hellip;</span></p>
       <p><strong>Status</strong><br><span id="info-update-status">Checking&hellip;</span></p>
-      <button id="info-force-refresh" class="refresh-button">Force Refresh</button>
+      <div class="button-row">
+        <button id="info-force-refresh" class="refresh-button">Force Refresh</button>
+        <a href="./logs" class="refresh-button" target="_blank" rel="noopener">View Logs</a>
+      </div>
     </div>
   </div>
 
-  <script id="build-info" type="application/json">"__BUILD_INFO__"</script>
+  <script src="buildinfo.js"></script>
   <script src="ofm_codes.js"></script>
   <script src="app.js"></script>
+  <script src="sw-logs.js"></script>
   <script src="info-panel.js"></script>
   <script src="sw-register.js"></script>
 </body>

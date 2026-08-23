@@ -20,7 +20,7 @@ const COPY_FILES = [
   'icon-512.png',
 ];
 
-const INLINE_SCRIPTS = ['ofm_codes.js', 'app.js', 'info-panel.js', 'sw-register.js'];
+const INLINE_SCRIPTS = ['ofm_codes.js', 'app.js', 'sw-logs.js', 'info-panel.js', 'sw-register.js'];
 
 const CSS_LINK_PATTERN = /<link\s+rel="stylesheet"\s+href="style\.css">/;
 
@@ -44,7 +44,7 @@ function getBuildInfo() {
 
 // Builds one HTML page: inlines its <script src> tags and stylesheet link,
 // minifies the result, and writes it to every path in outputPaths.
-async function buildPage(htmlFile, scripts, scriptPattern, minifiedCss, outputPaths, extraReplacements) {
+async function buildPage(htmlFile, scripts, scriptPattern, minifiedCss, outputPaths) {
   const js = scripts
     .map(file => fs.readFileSync(path.join(SRC, file), 'utf8'))
     .join('\n');
@@ -54,10 +54,6 @@ async function buildPage(htmlFile, scripts, scriptPattern, minifiedCss, outputPa
 
   if (!CSS_LINK_PATTERN.test(html)) throw new Error(`build.js: stylesheet <link> not found in src/${htmlFile}`);
   if (!scriptPattern.test(html)) throw new Error(`build.js: script tags not found in src/${htmlFile}`);
-
-  for (const [pattern, replacement] of extraReplacements || []) {
-    html = html.replace(pattern, replacement);
-  }
 
   html = html.replace(CSS_LINK_PATTERN, `<style>${minifiedCss}</style>`);
   html = html.replace(scriptPattern, `<script>${minifiedJs}</script>`);
@@ -86,26 +82,35 @@ async function build() {
     fs.copyFileSync(path.join(SRC, file), path.join(DIST, file));
   }
 
+  const buildInfo = getBuildInfo();
+
   // Minify sw.js
   const swJs = fs.readFileSync(path.join(SRC, 'sw.js'), 'utf8');
   const minifiedSwJs = (await minifyJs(swJs)).code;
   fs.writeFileSync(path.join(DIST, 'sw.js'), minifiedSwJs);
 
+  // Generate buildinfo.js: a small standalone file both the page and the
+  // service worker fetch independently to detect when a new build is live.
+  fs.writeFileSync(path.join(DIST, 'buildinfo.js'), 'self.BUILD_INFO=' + JSON.stringify(buildInfo) + ';\n');
+
   const css = fs.readFileSync(path.join(SRC, 'style.css'), 'utf8');
   const minifiedCss = new CleanCSS({}).minify(css).styles;
 
-  const buildInfo = getBuildInfo();
-  const scriptTagsPattern = /<script\s+src="ofm_codes\.js"><\/script>\s*<script\s+src="app\.js"><\/script>\s*<script\s+src="info-panel\.js"><\/script>\s*<script\s+src="sw-register\.js"><\/script>/;
+  const scriptTagsPattern = /<script\s+src="ofm_codes\.js"><\/script>\s*<script\s+src="app\.js"><\/script>\s*<script\s+src="sw-logs\.js"><\/script>\s*<script\s+src="info-panel\.js"><\/script>\s*<script\s+src="sw-register\.js"><\/script>/;
   await buildPage('index.html', INLINE_SCRIPTS, scriptTagsPattern, minifiedCss, [
     path.join(DIST, 'index.html'),
-  ], [
-    [/"__BUILD_INFO__"/, JSON.stringify(buildInfo)],
   ]);
 
   const mapScriptPattern = /<script\s+src="map\.js"><\/script>/;
   await buildPage('map.html', ['map.js'], mapScriptPattern, minifiedCss, [
     path.join(DIST, 'map.html'),
     path.join(DIST, 'map', 'index.html'),
+  ]);
+
+  const logsScriptPattern = /<script\s+src="sw-logs\.js"><\/script>\s*<script\s+src="logs\.js"><\/script>/;
+  await buildPage('logs.html', ['sw-logs.js', 'logs.js'], logsScriptPattern, minifiedCss, [
+    path.join(DIST, 'logs.html'),
+    path.join(DIST, 'logs', 'index.html'),
   ]);
 }
 

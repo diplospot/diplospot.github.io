@@ -20,6 +20,12 @@ if ('serviceWorker' in navigator) {
         });
       });
 
+      navigator.serviceWorker.addEventListener('message', function (event) {
+        if (event.data && event.data.type === 'UPDATE_READY') {
+          showUpdateNotification(reg);
+        }
+      });
+
       reg.update();
       document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'visible') {
@@ -54,6 +60,8 @@ function showUpdateNotification(reg) {
     refreshButton.onclick = function () {
       if (reg.waiting) {
         reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      } else {
+        window.location.reload();
       }
     };
   }

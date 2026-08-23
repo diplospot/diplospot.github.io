@@ -8,19 +8,20 @@ function createInfoPanelSandbox(buildInfo, swRegistration) {
   const infoPanelJs = fs.readFileSync(path.join(__dirname, '..', 'src', 'info-panel.js'), 'utf8');
 
   const modalClasses = new Set(['hidden']);
-  const handlers = { document: {}, button: null, close: null, backdrop: null, refresh: null };
+  const handlers = { document: {}, swMessage: null, button: null, close: null, backdrop: null, refresh: null };
   let reloadCount = 0;
 
-  const buildInfoEl = { textContent: buildInfo === undefined ? '"__BUILD_INFO__"' : JSON.stringify(buildInfo) };
   const repoLink = { href: '#', textContent: '' };
   const builtAtEl = { textContent: '' };
   const commitLink = { href: '#', textContent: '' };
   const statusEl = { textContent: '' };
+  const serverBuildEl = { textContent: '' };
   const backdropMock = { addEventListener: (evt, fn) => { if (evt === 'click') handlers.backdrop = fn; } };
 
   const buttonMock = { addEventListener: (evt, fn) => { if (evt === 'click') handlers.button = fn; } };
   const closeMock = { addEventListener: (evt, fn) => { if (evt === 'click') handlers.close = fn; } };
   const refreshMock = { addEventListener: (evt, fn) => { if (evt === 'click') handlers.refresh = fn; } };
+
   const modalMock = {
     classList: {
       add: (c) => modalClasses.add(c),
@@ -39,16 +40,21 @@ function createInfoPanelSandbox(buildInfo, swRegistration) {
     'info-built-at': builtAtEl,
     'info-commit-link': commitLink,
     'info-update-status': statusEl,
-    'build-info': buildInfoEl
+    'info-server-build': serverBuildEl
   };
 
   const sandbox = {
     swRegistration,
+    navigator: {
+      serviceWorker: {
+        addEventListener: (evt, fn) => { if (evt === 'message') handlers.swMessage = fn; }
+      }
+    },
     document: {
       getElementById: (id) => elements[id] || null,
       addEventListener: (evt, fn) => { handlers.document[evt] = fn; }
     },
-    window: { location: { reload: () => { reloadCount++; } } },
+    window: { location: { reload: () => { reloadCount++; } }, BUILD_INFO: buildInfo },
     Date: Date,
     JSON: JSON,
     isNaN: isNaN
@@ -65,6 +71,7 @@ function createInfoPanelSandbox(buildInfo, swRegistration) {
     builtAtEl,
     commitLink,
     statusEl,
+    serverBuildEl,
     getReloadCount: () => reloadCount
   };
 }
@@ -109,6 +116,19 @@ test('shows "Unavailable" when there is no service worker registration', () => {
   assert.equal(statusEl.textContent, 'Unavailable');
 });
 
+test('opening the modal requests a live server build check from the active worker', () => {
+  const activeMessages = [];
+  const { handlers, serverBuildEl } = createInfoPanelSandbox(
+    { commit: 'abc1234', repoUrl: 'https://github.com/x/y', builtAt: '2026-01-01T00:00:00.000Z' },
+    { waiting: null, active: { postMessage: (msg) => activeMessages.push(msg) }, update: () => {} }
+  );
+
+  handlers.button();
+  assert.equal(activeMessages.length, 1);
+  assert.equal(activeMessages[0].type, 'CHECK_UPDATE');
+  assert.equal(serverBuildEl.textContent, 'Checking…');
+});
+
 test('close button and backdrop click both dismiss the modal', () => {
   const buildInfo = { commit: 'abc1234', repoUrl: 'https://github.com/x/y', builtAt: '2026-01-01T00:00:00.000Z' };
 
@@ -136,10 +156,59 @@ test('Escape key dismisses the modal only while it is open', () => {
   assert.ok(modalClasses.has('hidden'), 'Escape should close the open modal');
 });
 
-test('Force Refresh reloads the page', () => {
+test('Force Refresh sends SKIP_WAITING when a waiting worker exists, without reloading directly', () => {
+  const waitingMessages = [];
+  const buildInfo = { commit: 'abc1234', repoUrl: 'https://github.com/x/y', builtAt: '2026-01-01T00:00:00.000Z' };
+  const { handlers, getReloadCount } = createInfoPanelSandbox(buildInfo, {
+    waiting: { postMessage: (msg) => waitingMessages.push(msg) },
+    update: () => {}
+  });
+
+  handlers.refresh();
+  assert.equal(waitingMessages.length, 1);
+  assert.equal(waitingMessages[0].type, 'SKIP_WAITING');
+  assert.equal(getReloadCount(), 0, 'should not reload immediately; controllerchange handles it');
+});
+
+test('Force Refresh with no waiting worker requests a check and reloads only once UPDATE_READY arrives', () => {
+  const activeMessages = [];
+  const buildInfo = { commit: 'abc1234', repoUrl: 'https://github.com/x/y', builtAt: '2026-01-01T00:00:00.000Z' };
+  const { handlers, getReloadCount } = createInfoPanelSandbox(buildInfo, {
+    waiting: null,
+    active: { postMessage: (msg) => activeMessages.push(msg) },
+    update: () => {}
+  });
+
+  handlers.refresh();
+  assert.equal(activeMessages.length, 1);
+  assert.equal(activeMessages[0].type, 'CHECK_UPDATE');
+  assert.equal(getReloadCount(), 0, 'should not reload before the refresh actually completes');
+
+  handlers.swMessage({ data: { type: 'UPDATE_READY', buildInfo: { commit: 'def4567', builtAt: '2026-01-02T00:00:00.000Z' } } });
+  assert.equal(getReloadCount(), 1, 'should reload once UPDATE_READY confirms the refresh finished');
+});
+
+test('Force Refresh with no registration at all reloads immediately', () => {
   const buildInfo = { commit: 'abc1234', repoUrl: 'https://github.com/x/y', builtAt: '2026-01-01T00:00:00.000Z' };
   const { handlers, getReloadCount } = createInfoPanelSandbox(buildInfo, null);
 
   handlers.refresh();
   assert.equal(getReloadCount(), 1);
+});
+
+test('BUILD_STATUS and UPDATE_READY messages update the server build display', () => {
+  const buildInfo = { commit: 'abc1234', repoUrl: 'https://github.com/x/y', builtAt: '2026-01-01T00:00:00.000Z' };
+  const { handlers, serverBuildEl } = createInfoPanelSandbox(buildInfo, null);
+
+  handlers.swMessage({ data: { type: 'BUILD_STATUS', remote: { commit: 'abc1234567', builtAt: '2026-01-01T00:00:00.000Z' } } });
+  assert.ok(serverBuildEl.textContent.startsWith('abc1234'), 'server build should reflect BUILD_STATUS commit');
+
+  handlers.swMessage({ data: { type: 'UPDATE_READY', buildInfo: { commit: 'def4567890', builtAt: '2026-01-02T00:00:00.000Z' } } });
+  assert.ok(serverBuildEl.textContent.startsWith('def4567'), 'server build should reflect UPDATE_READY commit');
+});
+
+test('View Logs is a real link that opens in a new tab, not a JS modal', () => {
+  const content = fs.readFileSync(path.join(__dirname, '..', 'dist', 'index.html'), 'utf8');
+  assert.ok(/<a[^>]*href="\.\/logs"[^>]*target="_blank"/.test(content), 'View Logs should link to ./logs in a new tab');
+  assert.strictEqual(content.includes('id="logs-modal"'), false, 'logs modal markup should no longer exist');
 });
