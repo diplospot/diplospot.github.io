@@ -47,19 +47,20 @@ function renderLocations() {
   }
 }
 
-function showTable() {
+function setTableVisible(visible) {
   var promptEl = document.getElementById('permission-prompt');
   var tableWrapper = document.querySelector('.table-wrapper');
-  if (promptEl) promptEl.classList.add('hidden');
-  if (tableWrapper) tableWrapper.classList.remove('hidden');
+  if (promptEl) promptEl.classList[visible ? 'add' : 'remove']('hidden');
+  if (tableWrapper) tableWrapper.classList[visible ? 'remove' : 'add']('hidden');
+}
+
+function showTable() {
+  setTableVisible(true);
   renderLocations();
 }
 
 function showPermissionPrompt() {
-  var promptEl = document.getElementById('permission-prompt');
-  var tableWrapper = document.querySelector('.table-wrapper');
-  if (promptEl) promptEl.classList.remove('hidden');
-  if (tableWrapper) tableWrapper.classList.add('hidden');
+  setTableVisible(false);
 }
 
 function checkGeolocationPermission() {
