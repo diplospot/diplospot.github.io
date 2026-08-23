@@ -19,10 +19,9 @@ function createInfoPanelSandbox(buildInfo, swRegistration) {
   let reloadCount = 0;
 
   const repoLink = { href: '#', textContent: '' };
-  const builtAtEl = { textContent: '' };
-  const commitLink = { href: '#', textContent: '' };
+  const localBuildEl = { innerHTML: '', textContent: '' };
   const statusEl = { textContent: '' };
-  const serverBuildEl = { textContent: '' };
+  const serverBuildEl = { innerHTML: '', textContent: '' };
   const backdropMock = {
     addEventListener: (evt, fn) => {
       if (evt === 'click') handlers.backdrop = fn;
@@ -60,8 +59,7 @@ function createInfoPanelSandbox(buildInfo, swRegistration) {
     'info-modal-close': closeMock,
     'info-force-refresh': refreshMock,
     'info-repo-link': repoLink,
-    'info-built-at': builtAtEl,
-    'info-commit-link': commitLink,
+    'info-local-build': localBuildEl,
     'info-update-status': statusEl,
     'info-server-build': serverBuildEl,
   };
@@ -102,22 +100,43 @@ function createInfoPanelSandbox(buildInfo, swRegistration) {
     handlers,
     modalClasses,
     repoLink,
-    builtAtEl,
-    commitLink,
+    localBuildEl,
     statusEl,
     serverBuildEl,
+    sandbox,
     getReloadCount: () => reloadCount,
   };
 }
 
-test('opening the info modal populates repo link, build time, commit link, and update status', () => {
+test('formatBuildInfo formats date and commit link consistently', () => {
+  const { sandbox } = createInfoPanelSandbox(null, null);
+
+  const html = sandbox.formatBuildInfo({
+    commit: 'abcdef1234567890',
+    repoUrl: 'https://github.com/diplospot/diplospot.github.io',
+    builtAt: '2026-08-15T17:29:02.000Z',
+  });
+
+  assert.ok(html.includes('Aug 15, 2026'), 'formatted date should be present');
+  assert.ok(
+    html.includes(
+      '<a href="https://github.com/diplospot/diplospot.github.io/commit/abcdef1234567890"'
+    ),
+    'commit link href should be present'
+  );
+  assert.ok(html.includes('abcdef1</a>'), 'short commit link text should be present');
+});
+
+test('opening the info modal populates repo link, local build, and update status in unified format', () => {
   const buildInfo = {
     commit: 'abcdef1234567890abcdef1234567890abcdef12',
     repoUrl: 'https://github.com/diplospot/diplospot.github.io',
-    builtAt: '2026-01-02T03:04:05.000Z',
+    builtAt: '2026-08-15T17:29:02.000Z',
   };
-  const { handlers, modalClasses, repoLink, builtAtEl, commitLink, statusEl } =
-    createInfoPanelSandbox(buildInfo, { waiting: null, update: () => {} });
+  const { handlers, modalClasses, repoLink, localBuildEl, statusEl } = createInfoPanelSandbox(
+    buildInfo,
+    { waiting: null, update: () => {} }
+  );
 
   assert.ok(handlers.button, 'info-button click handler should be registered');
   handlers.button();
@@ -125,9 +144,20 @@ test('opening the info modal populates repo link, build time, commit link, and u
   assert.equal(modalClasses.has('hidden'), false, 'modal should be visible after opening');
   assert.equal(repoLink.href, buildInfo.repoUrl);
   assert.equal(repoLink.textContent, buildInfo.repoUrl);
-  assert.equal(commitLink.href, buildInfo.repoUrl + '/commit/' + buildInfo.commit);
-  assert.equal(commitLink.textContent, buildInfo.commit.substring(0, 7));
-  assert.ok(builtAtEl.textContent.length > 0, 'built-at should be populated');
+  assert.ok(
+    localBuildEl.innerHTML.includes(
+      'href="https://github.com/diplospot/diplospot.github.io/commit/abcdef1234567890abcdef1234567890abcdef12"'
+    ),
+    'local build should contain link to commit'
+  );
+  assert.ok(
+    localBuildEl.innerHTML.includes('abcdef1</a>'),
+    'local build should show short commit link'
+  );
+  assert.ok(
+    localBuildEl.innerHTML.includes('Aug 15, 2026'),
+    'local build should contain formatted date'
+  );
   assert.equal(statusEl.textContent, 'Up to date');
 });
 
@@ -271,23 +301,39 @@ test('BUILD_STATUS and UPDATE_READY messages update the server build display', (
   handlers.swMessage({
     data: {
       type: 'BUILD_STATUS',
-      remote: { commit: 'abc1234567', builtAt: '2026-01-01T00:00:00.000Z' },
+      remote: {
+        commit: 'abc1234567',
+        repoUrl: 'https://github.com/x/y',
+        builtAt: '2026-08-15T17:29:02.000Z',
+      },
     },
   });
   assert.ok(
-    serverBuildEl.textContent.startsWith('abc1234'),
+    serverBuildEl.innerHTML.includes('abc1234'),
     'server build should reflect BUILD_STATUS commit'
+  );
+  assert.ok(
+    serverBuildEl.innerHTML.includes('Aug 15, 2026'),
+    'server build should reflect formatted date'
   );
 
   handlers.swMessage({
     data: {
       type: 'UPDATE_READY',
-      buildInfo: { commit: 'def4567890', builtAt: '2026-01-02T00:00:00.000Z' },
+      buildInfo: {
+        commit: 'def4567890',
+        repoUrl: 'https://github.com/x/y',
+        builtAt: '2026-08-16T18:30:00.000Z',
+      },
     },
   });
   assert.ok(
-    serverBuildEl.textContent.startsWith('def4567'),
+    serverBuildEl.innerHTML.includes('def4567'),
     'server build should reflect UPDATE_READY commit'
+  );
+  assert.ok(
+    serverBuildEl.innerHTML.includes('Aug 16, 2026'),
+    'server build should reflect formatted date'
   );
 });
 
