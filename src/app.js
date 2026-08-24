@@ -141,16 +141,11 @@ function saveCurrentLocation() {
 
 document.addEventListener('DOMContentLoaded', function () {
   var input = document.getElementById('plate-input');
-  var mapLink = document.getElementById('map-link');
   var pinBtn = document.getElementById('pin-button');
 
   input.addEventListener('input', onInput);
   input.addEventListener('focus', function () {
-    mapLink.classList.add('hidden');
     input.select();
-  });
-  input.addEventListener('blur', function () {
-    mapLink.classList.remove('hidden');
   });
   if (pinBtn) {
     pinBtn.addEventListener('click', saveCurrentLocation);
