@@ -203,10 +203,10 @@ test('loses focus after typing 3 letters when the first letter is C, D, or S', (
   assert.equal(wasBlurred(), true, 'should blur after 3 letters');
 });
 
-test('focusing the plate input hides the map link and selects all text, blurring restores the link', () => {
+test('focusing the plate input selects all text and leaves the map link visible', () => {
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'app.js'), 'utf8');
 
-  let focusHandler, blurHandler;
+  let focusHandler;
   let selectCallCount = 0;
   const mapLinkClasses = new Set();
   const inputEl = {
@@ -221,7 +221,6 @@ test('focusing the plate input hides the map link and selects all text, blurring
     },
     addEventListener: (evt, handler) => {
       if (evt === 'focus') focusHandler = handler;
-      if (evt === 'blur') blurHandler = handler;
     },
   };
   const mapLinkEl = {
@@ -247,14 +246,14 @@ test('focusing the plate input hides the map link and selects all text, blurring
   domReadyHandler();
 
   assert.ok(
-    mapLinkClasses.has('hidden'),
-    'map link should be hidden once the input auto-focuses on load'
+    !mapLinkClasses.has('hidden'),
+    'map link should stay visible when input auto-focuses on load'
   );
   assert.equal(selectCallCount, 1, 'input text should be selected when the input is focused');
 
-  blurHandler();
-  assert.ok(!mapLinkClasses.has('hidden'), 'map link should be visible once the input blurs');
-
   focusHandler();
-  assert.ok(mapLinkClasses.has('hidden'), 'map link should hide again when the input is focused');
+  assert.ok(
+    !mapLinkClasses.has('hidden'),
+    'map link should stay visible when input is focused again'
+  );
 });
