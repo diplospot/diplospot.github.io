@@ -158,7 +158,7 @@ test('opening the info modal populates repo link, local build, and update status
     localBuildEl.innerHTML.includes('Aug 15, 2026'),
     'local build should contain formatted date'
   );
-  assert.equal(statusEl.textContent, 'Up to date');
+  assert.equal(statusEl.textContent, 'Checking…');
 });
 
 test('shows "Update available" when the registration has a waiting worker', () => {
@@ -290,19 +290,25 @@ test('Force Refresh with no registration at all reloads immediately', () => {
   assert.equal(getReloadCount(), 1);
 });
 
-test('BUILD_STATUS and UPDATE_READY messages update the server build display', () => {
+test('BUILD_STATUS and UPDATE_READY messages update the server build display and update status', () => {
   const buildInfo = {
     commit: 'abc1234',
     repoUrl: 'https://github.com/x/y',
     builtAt: '2026-01-01T00:00:00.000Z',
   };
-  const { handlers, serverBuildEl } = createInfoPanelSandbox(buildInfo, null);
+  const { handlers, serverBuildEl, statusEl } = createInfoPanelSandbox(buildInfo, {
+    waiting: null,
+    update: () => {},
+  });
+
+  handlers.button();
+  assert.equal(statusEl.textContent, 'Checking…');
 
   handlers.swMessage({
     data: {
       type: 'BUILD_STATUS',
       remote: {
-        commit: 'abc1234567',
+        commit: 'abc1234',
         repoUrl: 'https://github.com/x/y',
         builtAt: '2026-08-15T17:29:02.000Z',
       },
@@ -316,6 +322,19 @@ test('BUILD_STATUS and UPDATE_READY messages update the server build display', (
     serverBuildEl.innerHTML.includes('Aug 15, 2026'),
     'server build should reflect formatted date'
   );
+  assert.equal(statusEl.textContent, 'Up to date');
+
+  handlers.swMessage({
+    data: {
+      type: 'BUILD_STATUS',
+      remote: {
+        commit: 'def4567890',
+        repoUrl: 'https://github.com/x/y',
+        builtAt: '2026-08-16T18:30:00.000Z',
+      },
+    },
+  });
+  assert.equal(statusEl.textContent, 'Update available');
 
   handlers.swMessage({
     data: {
@@ -335,6 +354,7 @@ test('BUILD_STATUS and UPDATE_READY messages update the server build display', (
     serverBuildEl.innerHTML.includes('Aug 16, 2026'),
     'server build should reflect formatted date'
   );
+  assert.equal(statusEl.textContent, 'Update available');
 });
 
 test('View Logs is a real link that opens in a new tab, not a JS modal', () => {
