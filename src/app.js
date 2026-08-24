@@ -1,7 +1,9 @@
 function showResult(data) {
   var container = document.getElementById('result-container');
+  resetPinButton();
 
   if (data.success) {
+    currentCountry = data.country || 'Unknown';
     document.getElementById('result-type').textContent = data.prefix || '';
     var flagPrefix = data.flag ? data.flag + ' ' : '';
     var wikiUrl =
@@ -20,6 +22,7 @@ function showResult(data) {
       container.classList.add('spotted');
     }
   } else {
+    currentCountry = 'Unknown';
     var raw = document.getElementById('plate-input').value;
     var letters = raw.toUpperCase().replace(/[^A-Z]/g, '');
     var countryCode = getCountryCode(letters);
@@ -85,28 +88,49 @@ function onInput() {
   if (result) {
     result.success = true;
     showResult(result);
-    trySaveLocation(result.country);
   } else {
     showResult({ success: false, message: 'Code "' + letters + '" not found' });
-    trySaveLocation('Unknown');
   }
 }
 
-function trySaveLocation(country) {
+var currentCountry = 'Unknown';
+var pinTimeout = null;
+
+function resetPinButton() {
+  var pinBtn = document.getElementById('pin-button');
+  if (pinBtn) {
+    pinBtn.textContent = '📍';
+    pinBtn.classList.remove('saved');
+  }
+  if (pinTimeout) {
+    clearTimeout(pinTimeout);
+    pinTimeout = null;
+  }
+}
+
+function saveCurrentLocation() {
   try {
     if (!('geolocation' in navigator)) return;
-    if (localStorage.getItem('diplospot_geo_granted') !== '1') return;
     navigator.geolocation.getCurrentPosition(
       function (position) {
         try {
           var locations = JSON.parse(localStorage.getItem('diplospot_locations') || '[]');
           locations.push({
             timestamp: new Date().toISOString(),
-            country: country,
+            country: currentCountry,
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
           });
           localStorage.setItem('diplospot_locations', JSON.stringify(locations));
+          localStorage.setItem('diplospot_geo_granted', '1');
+
+          var pinBtn = document.getElementById('pin-button');
+          if (pinBtn) {
+            pinBtn.textContent = '✓';
+            pinBtn.classList.add('saved');
+            if (pinTimeout) clearTimeout(pinTimeout);
+            pinTimeout = setTimeout(resetPinButton, 5000);
+          }
         } catch (e) {}
       },
       function () {},
@@ -118,6 +142,8 @@ function trySaveLocation(country) {
 document.addEventListener('DOMContentLoaded', function () {
   var input = document.getElementById('plate-input');
   var mapLink = document.getElementById('map-link');
+  var pinBtn = document.getElementById('pin-button');
+
   input.addEventListener('input', onInput);
   input.addEventListener('focus', function () {
     mapLink.classList.add('hidden');
@@ -126,5 +152,8 @@ document.addEventListener('DOMContentLoaded', function () {
   input.addEventListener('blur', function () {
     mapLink.classList.remove('hidden');
   });
+  if (pinBtn) {
+    pinBtn.addEventListener('click', saveCurrentLocation);
+  }
   input.focus();
 });

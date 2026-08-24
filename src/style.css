@@ -161,6 +161,25 @@ body {
   width: 100%;
 }
 
+.pin-button {
+  background: transparent;
+  border: none;
+  font-size: clamp(24px, 10vw, 48px);
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--color-text);
+  transition: transform 0.15s ease;
+}
+
+.pin-button:hover {
+  transform: scale(1.1);
+}
+
+.pin-button.saved {
+  color: #4ade80;
+}
+
 #update-notification {
   position: fixed;
   bottom: 24px;
@@ -209,16 +228,13 @@ a.refresh-button {
 
 #map-link {
   position: fixed;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 16px;
+  right: 48px;
   color: var(--color-text-muted);
   text-decoration: none;
-  font-size: 16px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px;
   z-index: 10;
 }
 

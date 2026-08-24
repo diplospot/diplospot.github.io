@@ -12,7 +12,7 @@ test('index.html contains fixed relative Map link', () => {
     'map-link should point to relative map path'
   );
   assert.ok(!content.includes('href="/map"'), 'map-link should not point to absolute /map path');
-  assert.ok(content.includes('Map'), 'map-link should contain Map text');
+  assert.ok(content.includes('🗺️'), 'map-link should contain map icon');
   assert.ok(content.includes('position:fixed'), 'map-link CSS should be position:fixed');
 });
 
@@ -44,12 +44,17 @@ function createLocalStorageMock(seed) {
   };
 }
 
-test('trySaveLocation saves location when previously granted (localStorage flag set)', async () => {
+test('saveCurrentLocation saves location on pin button click and toggles icon to checkmark', async () => {
   const appJsSource = fs.readFileSync(path.join(__dirname, '../src/app.js'), 'utf8');
   const ofmCodesSource = fs.readFileSync(path.join(__dirname, '../src/ofm_codes.js'), 'utf8');
 
   let positionRequested = false;
-  const localStorage = createLocalStorageMock({ diplospot_geo_granted: '1' });
+  const localStorage = createLocalStorageMock();
+
+  const pinBtnMock = {
+    textContent: '📍',
+    classList: { add: () => {}, remove: () => {} },
+  };
 
   const sandbox = {
     navigator: {
@@ -63,8 +68,13 @@ test('trySaveLocation saves location when previously granted (localStorage flag 
     localStorage,
     Date: Date,
     JSON: JSON,
+    setTimeout: setTimeout,
+    clearTimeout: clearTimeout,
     document: {
-      getElementById: () => null,
+      getElementById: (id) => {
+        if (id === 'pin-button') return pinBtnMock;
+        return { textContent: '', innerHTML: '', classList: { add: () => {}, remove: () => {} } };
+      },
       addEventListener: () => {},
     },
   };
@@ -72,55 +82,26 @@ test('trySaveLocation saves location when previously granted (localStorage flag 
   vm.createContext(sandbox);
   vm.runInContext(ofmCodesSource + '\n' + appJsSource, sandbox);
 
-  sandbox.trySaveLocation('France');
+  // show result for France first
+  sandbox.showResult({ success: true, country: 'France' });
 
-  assert.ok(
+  // automatic save should NOT have happened
+  assert.equal(
     positionRequested,
-    'getCurrentPosition should have been called without a permissions.query check'
+    false,
+    'geolocation should not run automatically on input/result'
   );
+
+  // click save location
+  sandbox.saveCurrentLocation();
+
+  assert.ok(positionRequested, 'getCurrentPosition should be called when user clicks pin');
   const parsed = JSON.parse(localStorage.store.diplospot_locations);
   assert.equal(parsed.length, 1);
   assert.equal(parsed[0].country, 'France');
   assert.equal(parsed[0].latitude, 37.7749);
   assert.equal(parsed[0].longitude, -122.4194);
-  assert.ok(parsed[0].timestamp);
-});
-
-test('trySaveLocation does nothing when never previously granted', async () => {
-  const appJsSource = fs.readFileSync(path.join(__dirname, '../src/app.js'), 'utf8');
-
-  let positionRequested = false;
-  const localStorage = createLocalStorageMock();
-
-  const sandbox = {
-    navigator: {
-      geolocation: {
-        getCurrentPosition: () => {
-          positionRequested = true;
-        },
-      },
-    },
-    localStorage,
-    Date: Date,
-    JSON: JSON,
-    document: { getElementById: () => null, addEventListener: () => {} },
-  };
-
-  vm.createContext(sandbox);
-  vm.runInContext(appJsSource, sandbox);
-
-  sandbox.trySaveLocation('France');
-
-  assert.equal(
-    positionRequested,
-    false,
-    'getCurrentPosition should not be called without a prior grant'
-  );
-  assert.equal(
-    localStorage.store.diplospot_locations,
-    undefined,
-    'localStorage should not be updated'
-  );
+  assert.equal(pinBtnMock.textContent, '✓', 'Pin button icon should turn into checkmark');
 });
 
 function createMapSandbox(navigator, localStorageSeed) {
