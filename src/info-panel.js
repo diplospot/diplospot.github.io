@@ -1,4 +1,6 @@
 var serverBuildEl = null;
+var statusEl = null;
+var buildInfo = null;
 var pendingRefreshReload = false;
 
 function formatDate(d) {
@@ -39,6 +41,16 @@ function formatBuildInfo(info) {
     : shortCommit;
 
   return when + ' ' + commitHtml;
+}
+
+function updateStatus(remoteInfo) {
+  if (!statusEl) return;
+  if (typeof swRegistration !== 'undefined' && swRegistration && swRegistration.waiting) {
+    statusEl.textContent = 'Update available';
+  } else if (buildInfo && remoteInfo && remoteInfo.commit) {
+    statusEl.textContent =
+      remoteInfo.commit === buildInfo.commit ? 'Up to date' : 'Update available';
+  }
 }
 
 // Wires a modal's close button + backdrop click to hide it, and returns
@@ -82,9 +94,11 @@ if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
     if (!data) return;
     if (data.type === 'BUILD_STATUS') {
       if (serverBuildEl) serverBuildEl.innerHTML = formatBuildInfo(data.remote);
+      updateStatus(data.remote);
       pendingRefreshReload = false;
     } else if (data.type === 'UPDATE_READY') {
       if (serverBuildEl) serverBuildEl.innerHTML = formatBuildInfo(data.buildInfo);
+      updateStatus(data.buildInfo);
       if (pendingRefreshReload) {
         pendingRefreshReload = false;
         window.location.reload();
@@ -104,9 +118,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   var repoLink = document.getElementById('info-repo-link');
   var localBuildEl = document.getElementById('info-local-build');
-  var statusEl = document.getElementById('info-update-status');
+  statusEl = document.getElementById('info-update-status');
   var refreshButton = document.getElementById('info-force-refresh');
-  var buildInfo = getBuildInfo();
+  buildInfo = getBuildInfo();
   serverBuildEl = document.getElementById('info-server-build');
 
   var infoModal = wireModal(modal, document.getElementById('info-modal-close'), function () {
@@ -121,8 +135,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (statusEl) {
-      if (swRegistration) {
-        statusEl.textContent = swRegistration.waiting ? 'Update available' : 'Up to date';
+      if (typeof swRegistration !== 'undefined' && swRegistration) {
+        statusEl.textContent = swRegistration.waiting ? 'Update available' : 'Checking…';
         swRegistration.update();
       } else {
         statusEl.textContent = 'Unavailable';
