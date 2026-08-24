@@ -298,8 +298,37 @@ a.refresh-button {
   margin-top: 0;
 }
 
+.logs-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 16px;
+}
+
+.logs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 16px;
+}
+
+.logs-header-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logs-title {
+  font-size: 24px;
+  font-weight: 700;
+}
+
 .logs-content-full {
   flex: 1;
+  width: 100%;
   min-height: 0;
   overflow-y: auto;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
