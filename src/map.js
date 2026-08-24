@@ -40,11 +40,34 @@ function renderLocations() {
     var lng = typeof item.longitude === 'number' ? item.longitude.toFixed(4) : item.longitude || '';
     tdLatLong.textContent = lat !== '' && lng !== '' ? lat + ', ' + lng : '';
 
+    var tdAction = document.createElement('td');
+    var deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-btn';
+    deleteBtn.textContent = 'Delete';
+    (function (index) {
+      deleteBtn.addEventListener('click', function () {
+        deleteLocation(index);
+      });
+    })(i);
+    tdAction.appendChild(deleteBtn);
+
     tr.appendChild(tdTime);
     tr.appendChild(tdCountry);
     tr.appendChild(tdLatLong);
+    tr.appendChild(tdAction);
     tbody.appendChild(tr);
   }
+}
+
+function deleteLocation(index) {
+  try {
+    var locations = JSON.parse(localStorage.getItem('diplospot_locations') || '[]');
+    if (index >= 0 && index < locations.length) {
+      locations.splice(index, 1);
+      localStorage.setItem('diplospot_locations', JSON.stringify(locations));
+    }
+  } catch (e) {}
+  renderLocations();
 }
 
 function setTableVisible(visible) {
