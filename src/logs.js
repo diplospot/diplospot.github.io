@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
   var contentEl = document.getElementById('logs-content');
-  var refreshButton = document.getElementById('logs-refresh');
   var clearButton = document.getElementById('logs-clear');
   if (!contentEl) return;
 
@@ -18,12 +17,6 @@ document.addEventListener('DOMContentLoaded', function () {
   onSwLog = render;
   render();
 
-  if (refreshButton) {
-    refreshButton.addEventListener('click', function () {
-      swLogs = loadStoredLogs();
-      render();
-    });
-  }
   if (clearButton) {
     clearButton.addEventListener('click', function () {
       swLogs = [];

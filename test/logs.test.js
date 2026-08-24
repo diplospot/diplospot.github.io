@@ -15,6 +15,12 @@ test('dist/logs.html and dist/logs/index.html exist and are minified', () => {
     content.includes('id="logs-content'),
     'logs.html should contain the log output element'
   );
+  assert.ok(
+    content.includes('class="logs-container"'),
+    'logs.html should use logs-container for full screen view'
+  );
+  assert.ok(content.includes('id="logs-clear"'), 'logs.html should contain Clear button');
+  assert.ok(!content.includes('id="logs-refresh"'), 'logs.html should not contain Refresh button');
   assert.strictEqual(/\n\s\s+/.test(content), false, 'logs.html should not have indentation');
 });
 
@@ -82,17 +88,12 @@ test('sw-logs.js ignores non-SW_LOG messages', () => {
   assert.equal(sandbox.swLogs.length, 0);
 });
 
-test('logs.js renders stored logs and wires Refresh / Clear buttons', () => {
+test('logs.js renders stored logs and wires Clear button', () => {
   const swLogsJs = fs.readFileSync(path.join(__dirname, '..', 'src', 'sw-logs.js'), 'utf8');
   const logsJs = fs.readFileSync(path.join(__dirname, '..', 'src', 'logs.js'), 'utf8');
 
   const contentEl = { textContent: '', scrollTop: 0, scrollHeight: 42 };
-  const handlers = { document: {}, refresh: null, clear: null };
-  const refreshMock = {
-    addEventListener: (evt, fn) => {
-      if (evt === 'click') handlers.refresh = fn;
-    },
-  };
+  const handlers = { document: {}, clear: null };
   const clearMock = {
     addEventListener: (evt, fn) => {
       if (evt === 'click') handlers.clear = fn;
@@ -101,7 +102,6 @@ test('logs.js renders stored logs and wires Refresh / Clear buttons', () => {
 
   const elements = {
     'logs-content': contentEl,
-    'logs-refresh': refreshMock,
     'logs-clear': clearMock,
   };
 
@@ -130,16 +130,6 @@ test('logs.js renders stored logs and wires Refresh / Clear buttons', () => {
   assert.ok(
     contentEl.textContent.includes('install: complete'),
     'initial render should include the stored log'
-  );
-
-  localStorage.store['diplospot-sw-logs'] = JSON.stringify([
-    { time: '2026-01-01T00:00:00.000Z', message: 'install: complete' },
-    { time: '2026-01-01T00:00:01.000Z', message: 'activate: clients.claim()' },
-  ]);
-  handlers.refresh();
-  assert.ok(
-    contentEl.textContent.includes('activate: clients.claim()'),
-    'Refresh should re-read localStorage'
   );
 
   handlers.clear();
