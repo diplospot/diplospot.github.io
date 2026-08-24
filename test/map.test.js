@@ -263,6 +263,105 @@ test('map.js shows table and remembers the grant when permissions.query reports 
   );
 });
 
+test('deleteLocation removes specific entry from localStorage and re-renders table', async () => {
+  const mapJsSource = fs.readFileSync(path.join(__dirname, '../src/map.js'), 'utf8');
+
+  const initialLocations = [
+    { timestamp: '2026-01-01T00:00:00.000Z', country: 'France', latitude: 10, longitude: 20 },
+    { timestamp: '2026-01-02T00:00:00.000Z', country: 'Germany', latitude: 30, longitude: 40 },
+  ];
+
+  const localStorage = createLocalStorageMock({
+    diplospot_locations: JSON.stringify(initialLocations),
+  });
+
+  let appendedChildren = [];
+  const tbodyMock = {
+    set innerHTML(val) {
+      if (val === '') appendedChildren = [];
+    },
+    appendChild: (child) => {
+      appendedChildren.push(child);
+    },
+  };
+
+  const noLocationsClassList = new Set(['hidden']);
+  const noLocationsMock = {
+    classList: {
+      add: (c) => noLocationsClassList.add(c),
+      remove: (c) => noLocationsClassList.delete(c),
+    },
+  };
+
+  const sandbox = {
+    navigator: {},
+    localStorage,
+    Date: Date,
+    JSON: JSON,
+    isNaN: isNaN,
+    document: {
+      getElementById: (id) => {
+        if (id === 'locations-body') return tbodyMock;
+        if (id === 'no-locations') return noLocationsMock;
+        return null;
+      },
+      querySelector: () => null,
+      createElement: (tag) => {
+        const elem = {
+          tag,
+          children: [],
+          listeners: {},
+          appendChild: (child) => elem.children.push(child),
+          addEventListener: (event, handler) => {
+            elem.listeners[event] = handler;
+          },
+        };
+        return elem;
+      },
+      addEventListener: () => {},
+    },
+  };
+
+  vm.createContext(sandbox);
+  vm.runInContext(mapJsSource, sandbox);
+
+  sandbox.renderLocations();
+
+  assert.equal(appendedChildren.length, 2);
+
+  // Find the delete button in the first row (index 0 - France)
+  const firstRow = appendedChildren[0];
+  const lastTd = firstRow.children[3]; // tdAction
+  const deleteBtn = lastTd.children[0];
+
+  assert.equal(deleteBtn.className, 'delete-btn');
+  assert.equal(deleteBtn.textContent, 'Delete');
+
+  // Click delete button for index 0
+  deleteBtn.listeners['click']();
+
+  // Verify localStorage updated
+  const updatedLocations = JSON.parse(localStorage.store.diplospot_locations);
+  assert.equal(updatedLocations.length, 1);
+  assert.equal(updatedLocations[0].country, 'Germany');
+
+  // Verify table re-rendered with 1 item remaining
+  assert.equal(appendedChildren.length, 1);
+
+  // Click delete button for remaining item (now index 0)
+  const newLastTd = appendedChildren[0].children[3];
+  const newDeleteBtn = newLastTd.children[0];
+  newDeleteBtn.listeners['click']();
+
+  const finalLocations = JSON.parse(localStorage.store.diplospot_locations);
+  assert.equal(finalLocations.length, 0);
+  assert.equal(
+    noLocationsClassList.has('hidden'),
+    false,
+    'no-locations should be visible when empty'
+  );
+});
+
 test('clicking enable location button triggers getCurrentPosition, shows table, and remembers the grant', async () => {
   let positionRequested = false;
   const { sandbox, promptClassList, tableWrapperClassList, localStorage } = createMapSandbox({

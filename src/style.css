@@ -435,3 +435,19 @@ a.refresh-button {
 .permission-button:hover {
   background: var(--color-accent-hover);
 }
+
+.delete-btn {
+  background: #dc2626;
+  color: var(--color-text);
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.delete-btn:hover {
+  background: #b91c1c;
+}
