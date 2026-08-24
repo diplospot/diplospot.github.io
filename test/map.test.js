@@ -413,26 +413,31 @@ test('deleteLocation removes specific entry from localStorage and re-renders tab
 
   assert.equal(appendedChildren.length, 2);
 
-  // Find the delete button in the first row (index 0 - France)
-  const firstRow = appendedChildren[0];
-  const lastTd = firstRow.children[3]; // tdAction
+  // Because table is sorted reverse-chronologically, first row in table is Germany (2026-01-02), second is France (2026-01-01)
+  assert.equal(appendedChildren[0].children[1].textContent, 'Germany');
+  assert.equal(appendedChildren[1].children[1].textContent, 'France');
+
+  // Find the delete button in the second row (France, original index 0)
+  const secondRow = appendedChildren[1];
+  const lastTd = secondRow.children[3]; // tdAction
   const deleteBtn = lastTd.children[0];
 
   assert.equal(deleteBtn.className, 'delete-btn');
   assert.equal(deleteBtn.textContent, 'Delete');
 
-  // Click delete button for index 0
+  // Click delete button for France (original index 0)
   deleteBtn.listeners['click']();
 
-  // Verify localStorage updated
+  // Verify localStorage updated (France removed, Germany remains)
   const updatedLocations = JSON.parse(localStorage.store.diplospot_locations);
   assert.equal(updatedLocations.length, 1);
   assert.equal(updatedLocations[0].country, 'Germany');
 
-  // Verify table re-rendered with 1 item remaining
+  // Verify table re-rendered with 1 item remaining (Germany)
   assert.equal(appendedChildren.length, 1);
+  assert.equal(appendedChildren[0].children[1].textContent, 'Germany');
 
-  // Click delete button for remaining item (now index 0)
+  // Click delete button for remaining item (Germany, original index 0 after re-render)
   const newLastTd = appendedChildren[0].children[3];
   const newDeleteBtn = newLastTd.children[0];
   newDeleteBtn.listeners['click']();
@@ -444,6 +449,66 @@ test('deleteLocation removes specific entry from localStorage and re-renders tab
     false,
     'no-locations should be visible when empty'
   );
+});
+
+test('renderLocations sorts locations in reverse chronological order (latest timestamp first)', () => {
+  const mapJsSource = fs.readFileSync(path.join(__dirname, '../src/map.js'), 'utf8');
+
+  const initialLocations = [
+    { timestamp: '2026-01-01T00:00:00.000Z', country: 'France', latitude: 10, longitude: 20 },
+    { timestamp: '2026-01-03T00:00:00.000Z', country: 'Italy', latitude: 50, longitude: 60 },
+    { timestamp: '2026-01-02T00:00:00.000Z', country: 'Germany', latitude: 30, longitude: 40 },
+  ];
+
+  const localStorage = createLocalStorageMock({
+    diplospot_locations: JSON.stringify(initialLocations),
+  });
+
+  let appendedChildren = [];
+  const tbodyMock = {
+    set innerHTML(val) {
+      if (val === '') appendedChildren = [];
+    },
+    appendChild: (child) => {
+      appendedChildren.push(child);
+    },
+  };
+
+  const sandbox = {
+    navigator: {},
+    localStorage,
+    Date: Date,
+    JSON: JSON,
+    isNaN: isNaN,
+    document: {
+      getElementById: (id) => (id === 'locations-body' ? tbodyMock : null),
+      querySelector: () => null,
+      createElement: (tag) => {
+        const elem = {
+          tag,
+          children: [],
+          textContent: '',
+          listeners: {},
+          appendChild: (child) => elem.children.push(child),
+          addEventListener: (event, handler) => {
+            elem.listeners[event] = handler;
+          },
+        };
+        return elem;
+      },
+      addEventListener: () => {},
+    },
+  };
+
+  vm.createContext(sandbox);
+  vm.runInContext(mapJsSource, sandbox);
+
+  sandbox.renderLocations();
+
+  assert.equal(appendedChildren.length, 3);
+  assert.equal(appendedChildren[0].children[1].textContent, 'Italy');
+  assert.equal(appendedChildren[1].children[1].textContent, 'Germany');
+  assert.equal(appendedChildren[2].children[1].textContent, 'France');
 });
 
 test('clicking enable location button triggers getCurrentPosition, shows table, and remembers the grant', async () => {

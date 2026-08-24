@@ -98,8 +98,29 @@ function renderLocations() {
 
   updateLeafletMap(locations);
 
+  var displayLocations = [];
   for (var i = 0; i < locations.length; i++) {
-    var item = locations[i];
+    displayLocations.push({
+      item: locations[i],
+      originalIndex: i,
+    });
+  }
+
+  displayLocations.sort(function (a, b) {
+    var timeA = new Date(a.item.timestamp).getTime();
+    var timeB = new Date(b.item.timestamp).getTime();
+    if (isNaN(timeA)) timeA = 0;
+    if (isNaN(timeB)) timeB = 0;
+    if (timeB !== timeA) {
+      return timeB - timeA;
+    }
+    return b.originalIndex - a.originalIndex;
+  });
+
+  for (var i = 0; i < displayLocations.length; i++) {
+    var entry = displayLocations[i];
+    var item = entry.item;
+    var originalIndex = entry.originalIndex;
     var tr = document.createElement('tr');
 
     var tdTime = document.createElement('td');
@@ -124,11 +145,11 @@ function renderLocations() {
     var deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-btn';
     deleteBtn.textContent = 'Delete';
-    (function (index) {
+    (function (indexToDelete) {
       deleteBtn.addEventListener('click', function () {
-        deleteLocation(index);
+        deleteLocation(indexToDelete);
       });
-    })(i);
+    })(originalIndex);
     tdAction.appendChild(deleteBtn);
 
     tr.appendChild(tdTime);
