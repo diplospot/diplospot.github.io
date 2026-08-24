@@ -24,6 +24,9 @@ test('dist/map.html and dist/map/index.html exist and are minified', () => {
 
   const content = fs.readFileSync(mapHtmlPath, 'utf8');
   assert.ok(content.includes('id="locations-table"'), 'map.html should contain locations table');
+  assert.ok(content.includes('id="map"'), 'map.html should contain map element');
+  assert.ok(content.includes('leaflet.css'), 'map.html should link Leaflet CSS');
+  assert.ok(content.includes('leaflet.js'), 'map.html should include Leaflet JS');
   assert.strictEqual(/\n\s\s+/.test(content), false, 'map.html should not have indentation');
 });
 
@@ -125,6 +128,7 @@ function createMapSandbox(navigator, localStorageSeed) {
 
   const promptClassList = new Set();
   const tableWrapperClassList = new Set();
+  const mapClassList = new Set();
   const promptMock = {
     classList: { add: (c) => promptClassList.add(c), remove: (c) => promptClassList.delete(c) },
   };
@@ -134,11 +138,15 @@ function createMapSandbox(navigator, localStorageSeed) {
       remove: (c) => tableWrapperClassList.delete(c),
     },
   };
+  const mapElMock = {
+    classList: { add: (c) => mapClassList.add(c), remove: (c) => mapClassList.delete(c) },
+  };
 
   const elements = {
     'permission-prompt': promptMock,
     'locations-body': { innerHTML: '', appendChild: () => {} },
     'no-locations': { classList: { add: () => {}, remove: () => {} } },
+    map: mapElMock,
   };
 
   const localStorage = createLocalStorageMock(
@@ -260,6 +268,101 @@ test('map.js shows table and remembers the grant when permissions.query reports 
     localStorage.store.diplospot_geo_granted,
     '1',
     'should remember the grant for future visits'
+  );
+});
+
+test('updateLeafletMap limits markers to the last 20 locations and sets popup content with country and timestamp', () => {
+  const mapJsSource = fs.readFileSync(path.join(__dirname, '../src/map.js'), 'utf8');
+
+  let markersAdded = [];
+  let fitBoundsCalled = false;
+  let fitBoundsArgs = null;
+
+  const mockFeatureGroup = {
+    addTo: function () {
+      return mockFeatureGroup;
+    },
+    clearLayers: function () {
+      markersAdded = [];
+    },
+    addLayer: function (marker) {
+      markersAdded.push(marker);
+    },
+  };
+
+  const mockMapInstance = {
+    setView: function () {
+      return mockMapInstance;
+    },
+    fitBounds: function (bounds, opts) {
+      fitBoundsCalled = true;
+      fitBoundsArgs = { bounds, opts };
+    },
+    invalidateSize: function () {},
+  };
+
+  const L = {
+    map: function () {
+      return mockMapInstance;
+    },
+    tileLayer: function () {
+      return { addTo: function () {} };
+    },
+    featureGroup: function () {
+      return mockFeatureGroup;
+    },
+    marker: function (latlng) {
+      const m = {
+        latlng,
+        popupContent: '',
+        bindPopup: function (content) {
+          m.popupContent = content;
+          return m;
+        },
+      };
+      return m;
+    },
+  };
+
+  const locations = [];
+  for (let i = 1; i <= 25; i++) {
+    locations.push({
+      timestamp: `2026-01-01T00:00:${i < 10 ? '0' + i : i}.000Z`,
+      country: `Country ${i}`,
+      latitude: i,
+      longitude: i * 2,
+    });
+  }
+
+  const mapElMock = { classList: { add: () => {}, remove: () => {} } };
+
+  const sandbox = {
+    L,
+    document: {
+      getElementById: (id) => (id === 'map' ? mapElMock : null),
+      addEventListener: () => {},
+    },
+    Date,
+    JSON,
+    isNaN,
+    setTimeout: (fn) => fn(),
+  };
+
+  vm.createContext(sandbox);
+  vm.runInContext(mapJsSource, sandbox);
+
+  sandbox.updateLeafletMap(locations);
+
+  assert.equal(markersAdded.length, 20, 'Should limit map markers to the last 20 locations');
+  assert.equal(fitBoundsCalled, true, 'Should call fitBounds on map');
+  assert.equal(fitBoundsArgs.bounds.length, 20);
+
+  // The 20 items rendered should be from index 5 to 24 (Country 6 through Country 25)
+  assert.ok(markersAdded[0].popupContent.includes('Country 6'));
+  assert.ok(markersAdded[19].popupContent.includes('Country 25'));
+  assert.ok(
+    markersAdded[19].popupContent.includes('<strong>Country 25</strong>'),
+    'Popup content should include bold country name'
   );
 });
 

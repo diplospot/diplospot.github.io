@@ -1,3 +1,80 @@
+var leafletMap = null;
+var leafletMarkersGroup = null;
+
+function initLeafletMap() {
+  var mapEl = document.getElementById('map');
+  if (!mapEl || typeof L === 'undefined') return;
+
+  if (!leafletMap) {
+    leafletMap = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(leafletMap);
+    leafletMarkersGroup = L.featureGroup().addTo(leafletMap);
+  }
+}
+
+function updateLeafletMap(locations) {
+  var mapEl = document.getElementById('map');
+  if (!mapEl) return;
+
+  initLeafletMap();
+
+  if (mapEl) {
+    if (!locations || locations.length === 0) {
+      mapEl.classList.add('hidden');
+    } else {
+      mapEl.classList.remove('hidden');
+    }
+  }
+
+  if (!leafletMap || !leafletMarkersGroup) return;
+
+  leafletMarkersGroup.clearLayers();
+
+  var validLocations = [];
+  if (locations && locations.length > 0) {
+    for (var i = 0; i < locations.length; i++) {
+      var item = locations[i];
+      if (typeof item.latitude === 'number' && typeof item.longitude === 'number') {
+        validLocations.push(item);
+      }
+    }
+  }
+
+  var recentLocations = validLocations.slice(-20);
+
+  var bounds = [];
+  for (var j = 0; j < recentLocations.length; j++) {
+    var loc = recentLocations[j];
+    var tsFormatted = loc.timestamp || '';
+    try {
+      var d = new Date(loc.timestamp);
+      if (!isNaN(d.getTime())) {
+        tsFormatted = d.toLocaleString();
+      }
+    } catch (e) {}
+
+    var countryStr = loc.country || 'Unknown';
+    var popupContent =
+      '<strong>' + countryStr + '</strong><br/>' + (tsFormatted ? tsFormatted : '');
+
+    var marker = L.marker([loc.latitude, loc.longitude]).bindPopup(popupContent);
+    leafletMarkersGroup.addLayer(marker);
+    bounds.push([loc.latitude, loc.longitude]);
+  }
+
+  if (bounds.length > 0) {
+    leafletMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+  }
+
+  setTimeout(function () {
+    if (leafletMap) leafletMap.invalidateSize();
+  }, 100);
+}
+
 function renderLocations() {
   var tbody = document.getElementById('locations-body');
   var noLocations = document.getElementById('no-locations');
@@ -13,10 +90,13 @@ function renderLocations() {
   tbody.innerHTML = '';
   if (!locations || locations.length === 0) {
     if (noLocations) noLocations.classList.remove('hidden');
+    updateLeafletMap([]);
     return;
   }
 
   if (noLocations) noLocations.classList.add('hidden');
+
+  updateLeafletMap(locations);
 
   for (var i = 0; i < locations.length; i++) {
     var item = locations[i];
