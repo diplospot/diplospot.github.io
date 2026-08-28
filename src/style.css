@@ -493,17 +493,20 @@ a.refresh-button {
 }
 
 .delete-btn {
-  background: #dc2626;
+  background: transparent;
   color: var(--color-text);
   border: none;
-  padding: 4px 8px;
+  padding: 4px 6px;
   border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 16px;
+  line-height: 1;
   cursor: pointer;
-  transition: background 0.2s;
+  transition:
+    background 0.2s,
+    transform 0.15s ease;
 }
 
 .delete-btn:hover {
-  background: #b91c1c;
+  background: rgb(220 38 38 / 0.2);
+  transform: scale(1.1);
 }
