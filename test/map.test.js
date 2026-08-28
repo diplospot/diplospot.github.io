@@ -143,7 +143,7 @@ function createMapSandbox(navigator, localStorageSeed) {
     document: {
       getElementById: (id) => elements[id] || null,
       querySelector: (sel) => (sel === '.table-wrapper' ? tableWrapperMock : null),
-      createElement: () => ({ appendChild: () => {} }),
+      createElement: () => ({ appendChild: () => {}, setAttribute: () => {} }),
       addEventListener: () => {},
     },
   };
@@ -391,13 +391,18 @@ test('deleteLocation removes specific entry from localStorage and re-renders tab
       },
       querySelector: () => null,
       createElement: (tag) => {
+        const attributes = {};
         const elem = {
           tag,
           children: [],
           listeners: {},
+          attributes,
           appendChild: (child) => elem.children.push(child),
           addEventListener: (event, handler) => {
             elem.listeners[event] = handler;
+          },
+          setAttribute: (name, value) => {
+            attributes[name] = value;
           },
         };
         return elem;
@@ -423,7 +428,7 @@ test('deleteLocation removes specific entry from localStorage and re-renders tab
   const deleteBtn = lastTd.children[0];
 
   assert.equal(deleteBtn.className, 'delete-btn');
-  assert.equal(deleteBtn.textContent, 'Delete');
+  assert.equal(deleteBtn.textContent, '🗑️');
 
   // Click delete button for France (original index 0)
   deleteBtn.listeners['click']();
@@ -484,14 +489,19 @@ test('renderLocations sorts locations in reverse chronological order (latest tim
       getElementById: (id) => (id === 'locations-body' ? tbodyMock : null),
       querySelector: () => null,
       createElement: (tag) => {
+        const attributes = {};
         const elem = {
           tag,
           children: [],
           textContent: '',
           listeners: {},
+          attributes,
           appendChild: (child) => elem.children.push(child),
           addEventListener: (event, handler) => {
             elem.listeners[event] = handler;
+          },
+          setAttribute: (name, value) => {
+            attributes[name] = value;
           },
         };
         return elem;

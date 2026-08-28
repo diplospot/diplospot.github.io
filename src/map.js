@@ -144,7 +144,8 @@ function renderLocations() {
     var tdAction = document.createElement('td');
     var deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-btn';
-    deleteBtn.textContent = 'Delete';
+    deleteBtn.textContent = '🗑️';
+    deleteBtn.setAttribute('aria-label', 'Delete location');
     (function (indexToDelete) {
       deleteBtn.addEventListener('click', function () {
         deleteLocation(indexToDelete);
