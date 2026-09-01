@@ -107,8 +107,9 @@ async function build() {
     path.join(DIST, 'index.html'),
   ]);
 
-  const mapScriptPattern = /<script\s+src="map\.js"><\/script>/;
-  await buildPage('map.html', ['map.js'], mapScriptPattern, minifiedCss, [
+  const mapScriptPattern =
+    /<script\s+src="ofm_codes\.js"><\/script>\s*<script\s+src="map\.js"><\/script>/;
+  await buildPage('map.html', ['ofm_codes.js', 'map.js'], mapScriptPattern, minifiedCss, [
     path.join(DIST, 'map.html'),
     path.join(DIST, 'map', 'index.html'),
   ]);
