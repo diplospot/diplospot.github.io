@@ -456,6 +456,90 @@ test('updateLeafletMap limits markers to the last 20 locations and sets popup co
   assert.ok(iconOpts.html.includes('flag-marker-pole'));
 });
 
+test('updateLeafletMap derives flag emoji from country name when loc.flag and loc.code are omitted', () => {
+  const mapJsSource = fs.readFileSync(path.join(__dirname, '../src/map.js'), 'utf8');
+
+  let markersAdded = [];
+
+  const mockFeatureGroup = {
+    addTo: function () {
+      return mockFeatureGroup;
+    },
+    clearLayers: function () {
+      markersAdded = [];
+    },
+    addLayer: function (marker) {
+      markersAdded.push(marker);
+    },
+  };
+
+  const mockMapInstance = {
+    setView: function () {
+      return mockMapInstance;
+    },
+    fitBounds: function () {},
+    invalidateSize: function () {},
+  };
+
+  const L = {
+    map: function () {
+      return mockMapInstance;
+    },
+    tileLayer: function () {
+      return { addTo: function () {} };
+    },
+    featureGroup: function () {
+      return mockFeatureGroup;
+    },
+    divIcon: function (opts) {
+      return opts;
+    },
+    marker: function (latlng, opts) {
+      return {
+        latlng,
+        opts,
+        bindPopup: function () {
+          return this;
+        },
+      };
+    },
+  };
+
+  const sandbox = {
+    L,
+    OFM_CODES: {
+      AF: { country: 'Japan', flag: '🇯🇵' },
+    },
+    document: {
+      getElementById: (id) => (id === 'map' ? {} : null),
+      addEventListener: () => {},
+    },
+    Date,
+    JSON,
+    isNaN,
+    setTimeout: (fn) => fn(),
+  };
+
+  vm.createContext(sandbox);
+  vm.runInContext(mapJsSource, sandbox);
+
+  sandbox.updateLeafletMap([
+    {
+      timestamp: '2026-01-01T00:00:00.000Z',
+      country: 'Japan',
+      latitude: 35.6762,
+      longitude: 139.6503,
+    },
+  ]);
+
+  assert.equal(markersAdded.length, 1);
+  const iconOpts = markersAdded[0].opts.icon;
+  assert.ok(
+    iconOpts.html.includes('🇯🇵'),
+    'Icon HTML should include Japan flag emoji derived from country name'
+  );
+});
+
 test('deleteLocation removes specific entry from localStorage and re-renders table', async () => {
   const mapJsSource = fs.readFileSync(path.join(__dirname, '../src/map.js'), 'utf8');
 

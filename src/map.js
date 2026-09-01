@@ -62,6 +62,27 @@ function updateLeafletMap(locations) {
         flagEmoji = entry.flag;
       }
     }
+    if (!flagEmoji && loc.country && typeof OFM_CODES !== 'undefined') {
+      var key;
+      for (key in OFM_CODES) {
+        if (OFM_CODES[key] && OFM_CODES[key].country === loc.country && OFM_CODES[key].flag) {
+          flagEmoji = OFM_CODES[key].flag;
+          break;
+        }
+      }
+      if (!flagEmoji && typeof SPOTTED_CODES !== 'undefined') {
+        for (key in SPOTTED_CODES) {
+          if (
+            SPOTTED_CODES[key] &&
+            SPOTTED_CODES[key].country === loc.country &&
+            SPOTTED_CODES[key].flag
+          ) {
+            flagEmoji = SPOTTED_CODES[key].flag;
+            break;
+          }
+        }
+      }
+    }
     if (!flagEmoji) {
       flagEmoji = '🚩';
     }
