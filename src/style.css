@@ -670,3 +670,28 @@ a.refresh-button {
   background: rgb(220 38 38 / 0.2);
   transform: scale(1.1);
 }
+
+/* Custom Leaflet Flag Marker Styles */
+.custom-leaflet-flag {
+  background: transparent;
+  border: none;
+}
+
+.flag-marker-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.flag-marker-emoji {
+  font-size: 20px;
+  line-height: 1;
+  margin: 0 0 0 -1px;
+}
+
+.flag-marker-pole {
+  width: 3px;
+  height: 12px;
+  background-color: #333333;
+  margin-top: -4px;
+}

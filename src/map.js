@@ -53,7 +53,38 @@ function updateLeafletMap(locations) {
     var popupContent =
       '<strong>' + countryStr + '</strong><br/>' + (tsFormatted ? tsFormatted : '');
 
-    var marker = L.marker([loc.latitude, loc.longitude]).bindPopup(popupContent);
+    var flagEmoji = loc.flag || '';
+    if (!flagEmoji && loc.code && typeof OFM_CODES !== 'undefined') {
+      var entry =
+        OFM_CODES[loc.code] ||
+        (typeof SPOTTED_CODES !== 'undefined' ? SPOTTED_CODES[loc.code] : null);
+      if (entry && entry.flag) {
+        flagEmoji = entry.flag;
+      }
+    }
+    if (!flagEmoji) {
+      flagEmoji = '🚩';
+    }
+
+    var iconHtml =
+      '<div class="flag-marker-wrapper">' +
+      '<span class="flag-marker-emoji">' +
+      flagEmoji +
+      '</span>' +
+      '<div class="flag-marker-pole"></div>' +
+      '</div>';
+
+    var flagIcon = L.divIcon({
+      className: 'custom-leaflet-flag',
+      html: iconHtml,
+      iconSize: [24, 32],
+      iconAnchor: [0, 32],
+      popupAnchor: [12, -32],
+    });
+
+    var marker = L.marker([loc.latitude, loc.longitude], { icon: flagIcon }).bindPopup(
+      popupContent
+    );
     leafletMarkersGroup.addLayer(marker);
     bounds.push([loc.latitude, loc.longitude]);
   }

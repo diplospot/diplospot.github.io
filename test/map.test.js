@@ -384,9 +384,13 @@ test('updateLeafletMap limits markers to the last 20 locations and sets popup co
     featureGroup: function () {
       return mockFeatureGroup;
     },
-    marker: function (latlng) {
+    divIcon: function (opts) {
+      return opts;
+    },
+    marker: function (latlng, opts) {
       const m = {
         latlng,
+        opts,
         popupContent: '',
         bindPopup: function (content) {
           m.popupContent = content;
@@ -437,6 +441,19 @@ test('updateLeafletMap limits markers to the last 20 locations and sets popup co
     markersAdded[19].popupContent.includes('<strong>Country 25</strong>'),
     'Popup content should include bold country name'
   );
+
+  // Verify custom flag L.divIcon options
+  const iconOpts = markersAdded[0].opts.icon;
+  assert.equal(iconOpts.className, 'custom-leaflet-flag');
+  assert.equal(iconOpts.iconSize[0], 24);
+  assert.equal(iconOpts.iconSize[1], 32);
+  assert.equal(iconOpts.iconAnchor[0], 0);
+  assert.equal(iconOpts.iconAnchor[1], 32);
+  assert.equal(iconOpts.popupAnchor[0], 12);
+  assert.equal(iconOpts.popupAnchor[1], -32);
+  assert.ok(iconOpts.html.includes('flag-marker-wrapper'));
+  assert.ok(iconOpts.html.includes('flag-marker-emoji'));
+  assert.ok(iconOpts.html.includes('flag-marker-pole'));
 });
 
 test('deleteLocation removes specific entry from localStorage and re-renders table', async () => {
@@ -612,6 +629,9 @@ test('renderLocations displays code in table for Unknown plates while map popup 
     },
     featureGroup: function () {
       return mockFeatureGroup;
+    },
+    divIcon: function (opts) {
+      return opts;
     },
     marker: function () {
       const m = {
