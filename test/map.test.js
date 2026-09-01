@@ -83,7 +83,7 @@ test('saveCurrentLocation saves location on pin button click and toggles icon to
   vm.runInContext(ofmCodesSource + '\n' + appJsSource, sandbox);
 
   // show result for France first
-  sandbox.showResult({ success: true, country: 'France' });
+  sandbox.showResult({ success: true, country: 'France', code: 'DJ' });
 
   // automatic save should NOT have happened
   assert.equal(
@@ -99,9 +99,55 @@ test('saveCurrentLocation saves location on pin button click and toggles icon to
   const parsed = JSON.parse(localStorage.store.diplospot_locations);
   assert.equal(parsed.length, 1);
   assert.equal(parsed[0].country, 'France');
+  assert.equal(parsed[0].code, 'DJ');
   assert.equal(parsed[0].latitude, 37.7749);
   assert.equal(parsed[0].longitude, -122.4194);
   assert.equal(pinBtnMock.textContent, '✓', 'Pin button icon should turn into checkmark');
+});
+
+test('saveCurrentLocation saves code for unrecognized plates', async () => {
+  const appJsSource = fs.readFileSync(path.join(__dirname, '../src/app.js'), 'utf8');
+  const ofmCodesSource = fs.readFileSync(path.join(__dirname, '../src/ofm_codes.js'), 'utf8');
+
+  const localStorage = createLocalStorageMock();
+  const pinBtnMock = {
+    textContent: '📍',
+    classList: { add: () => {}, remove: () => {} },
+  };
+
+  const sandbox = {
+    navigator: {
+      geolocation: {
+        getCurrentPosition: (successCb) => {
+          successCb({ coords: { latitude: 10, longitude: 20 } });
+        },
+      },
+    },
+    localStorage,
+    Date: Date,
+    JSON: JSON,
+    setTimeout: setTimeout,
+    clearTimeout: clearTimeout,
+    document: {
+      getElementById: (id) => {
+        if (id === 'pin-button') return pinBtnMock;
+        if (id === 'plate-input') return { value: 'DFA' };
+        return { textContent: '', innerHTML: '', classList: { add: () => {}, remove: () => {} } };
+      },
+      addEventListener: () => {},
+    },
+  };
+
+  vm.createContext(sandbox);
+  vm.runInContext(ofmCodesSource + '\n' + appJsSource, sandbox);
+
+  sandbox.showResult({ success: false, message: 'Code "DFA" not found' });
+  sandbox.saveCurrentLocation();
+
+  const parsed = JSON.parse(localStorage.store.diplospot_locations);
+  assert.equal(parsed.length, 1);
+  assert.equal(parsed[0].country, 'Unknown');
+  assert.equal(parsed[0].code, 'FA');
 });
 
 function createMapSandbox(navigator, localStorageSeed) {
@@ -499,6 +545,146 @@ test('deleteLocation removes specific entry from localStorage and re-renders tab
     noLocationsClassList.has('hidden'),
     false,
     'no-locations should be visible when empty'
+  );
+});
+
+test('renderLocations displays code in table for Unknown plates while map popup shows Unknown', () => {
+  const mapJsSource = fs.readFileSync(path.join(__dirname, '../src/map.js'), 'utf8');
+
+  const initialLocations = [
+    {
+      timestamp: '2026-01-01T00:00:00.000Z',
+      country: 'France',
+      code: 'DJ',
+      latitude: 10,
+      longitude: 20,
+    },
+    {
+      timestamp: '2026-01-02T00:00:00.000Z',
+      country: 'Unknown',
+      code: 'FA',
+      latitude: 30,
+      longitude: 40,
+    },
+  ];
+
+  const localStorage = createLocalStorageMock({
+    diplospot_locations: JSON.stringify(initialLocations),
+  });
+
+  let appendedChildren = [];
+  const tbodyMock = {
+    set innerHTML(val) {
+      if (val === '') appendedChildren = [];
+    },
+    appendChild: (child) => {
+      appendedChildren.push(child);
+    },
+  };
+
+  let mapPopups = [];
+  const mockFeatureGroup = {
+    addTo: function () {
+      return mockFeatureGroup;
+    },
+    clearLayers: function () {
+      mapPopups = [];
+    },
+    addLayer: function (marker) {
+      mapPopups.push(marker.popupContent);
+    },
+  };
+
+  const mockMapInstance = {
+    setView: function () {
+      return mockMapInstance;
+    },
+    fitBounds: function () {},
+    invalidateSize: function () {},
+  };
+
+  const L = {
+    map: function () {
+      return mockMapInstance;
+    },
+    tileLayer: function () {
+      return { addTo: function () {} };
+    },
+    featureGroup: function () {
+      return mockFeatureGroup;
+    },
+    marker: function () {
+      const m = {
+        popupContent: '',
+        bindPopup: function (content) {
+          m.popupContent = content;
+          return m;
+        },
+      };
+      return m;
+    },
+  };
+
+  const sandbox = {
+    L,
+    navigator: {},
+    localStorage,
+    Date: Date,
+    JSON: JSON,
+    isNaN: isNaN,
+    document: {
+      getElementById: (id) => {
+        if (id === 'locations-body') return tbodyMock;
+        if (id === 'map') return { classList: { add: () => {}, remove: () => {} } };
+        return null;
+      },
+      querySelector: () => null,
+      createElement: (tag) => {
+        const elem = {
+          tag,
+          children: [],
+          textContent: '',
+          listeners: {},
+          appendChild: (child) => elem.children.push(child),
+          addEventListener: (event, handler) => {
+            elem.listeners[event] = handler;
+          },
+          setAttribute: () => {},
+        };
+        return elem;
+      },
+      addEventListener: () => {},
+    },
+    window: { addEventListener: () => {} },
+    setTimeout: (fn) => fn(),
+  };
+
+  vm.createContext(sandbox);
+  vm.runInContext(mapJsSource, sandbox);
+
+  sandbox.renderLocations();
+
+  assert.equal(appendedChildren.length, 2);
+  // Reverse chronological order: 2026-01-02 (Unknown plate with code 'FA') comes first
+  assert.equal(
+    appendedChildren[0].children[1].textContent,
+    'FA',
+    'Table should render code FA instead of Unknown'
+  );
+  assert.equal(
+    appendedChildren[1].children[1].textContent,
+    'France',
+    'Table should render country France for known plate'
+  );
+
+  // Verify Leaflet popup content STILL shows Unknown for map pin
+  assert.ok(
+    mapPopups.some((content) => content.includes('<strong>Unknown</strong>')),
+    'Map popup should still show Unknown'
+  );
+  assert.ok(
+    mapPopups.some((content) => content.includes('<strong>France</strong>')),
+    'Map popup should show France'
   );
 });
 

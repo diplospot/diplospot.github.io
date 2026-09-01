@@ -126,7 +126,11 @@ function renderLocations() {
     tdTime.textContent = ts || '';
 
     var tdCountry = document.createElement('td');
-    tdCountry.textContent = item.country || '';
+    var countryDisplay = item.country || '';
+    if ((!countryDisplay || countryDisplay === 'Unknown') && item.code) {
+      countryDisplay = item.code;
+    }
+    tdCountry.textContent = countryDisplay;
 
     var tdLatLong = document.createElement('td');
     var lat = typeof item.latitude === 'number' ? item.latitude.toFixed(4) : item.latitude || '';

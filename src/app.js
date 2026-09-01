@@ -4,6 +4,7 @@ function showResult(data) {
 
   if (data.success) {
     currentCountry = data.country || 'Unknown';
+    currentCode = data.code || '';
     document.getElementById('result-type').textContent = data.prefix || '';
     var flagPrefix = data.flag ? data.flag + ' ' : '';
     var wikiUrl =
@@ -26,6 +27,7 @@ function showResult(data) {
     var raw = document.getElementById('plate-input').value;
     var letters = raw.toUpperCase().replace(/[^A-Z]/g, '');
     var countryCode = getCountryCode(letters);
+    currentCode = countryCode || '';
 
     if (countryCode) {
       var title = '[Unknown Plate] ' + countryCode + ' plate spotted';
@@ -94,6 +96,7 @@ function onInput() {
 }
 
 var currentCountry = 'Unknown';
+var currentCode = '';
 var pinTimeout = null;
 
 function resetPinButton() {
@@ -118,6 +121,7 @@ function saveCurrentLocation() {
           locations.push({
             timestamp: new Date().toISOString(),
             country: currentCountry,
+            code: currentCode,
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
           });
