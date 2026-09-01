@@ -58,6 +58,20 @@ test('looks up a spotted code (GK)', () => {
   assert.equal(result.source, 'Spotted');
 });
 
+test('looks up a spotted code (FA)', () => {
+  const result = sandbox.lookupPlate('FA');
+  assert.equal(result.country, 'Unknown');
+  assert.equal(result.source, 'Spotted');
+});
+
+test('parses a plate-type prefix followed by a spotted country code (DFA)', () => {
+  const result = sandbox.lookupPlate('DFA');
+  assert.equal(result.prefix, 'Diplomat');
+  assert.equal(result.code, 'FA');
+  assert.equal(result.country, 'Unknown');
+  assert.equal(result.source, 'Spotted');
+});
+
 test('parses a plate-type prefix followed by a spotted country code (DGK)', () => {
   const result = sandbox.lookupPlate('DGK');
   assert.equal(result.prefix, 'Diplomat');

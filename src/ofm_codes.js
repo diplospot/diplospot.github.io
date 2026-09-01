@@ -217,6 +217,7 @@ var OFM_CODES = {
 };
 
 var SPOTTED_CODES = {
+  FA: { country: 'Unknown', source: 'Spotted' },
   GK: { country: 'Unknown', source: 'Spotted' },
 };
 
