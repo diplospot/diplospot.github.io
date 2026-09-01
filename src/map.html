@@ -19,6 +19,8 @@
   </head>
   <body>
     <div class="map-container">
+      <div id="map"></div>
+
       <div class="map-header">
         <a href="./" class="back-link">← Home</a>
         <h1 class="map-title">Map</h1>
@@ -32,20 +34,47 @@
         <button id="enable-location-btn" class="permission-button">Enable Location Access</button>
       </div>
 
-      <div class="table-wrapper hidden">
-        <div id="map"></div>
-        <table id="locations-table">
-          <thead>
-            <tr>
-              <th>Timestamp</th>
-              <th>Country</th>
-              <th>Lat/Long</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="locations-body"></tbody>
-        </table>
-        <div id="no-locations" class="hidden">No saved locations found.</div>
+      <button
+        id="sheet-toggle"
+        class="sheet-toggle hidden"
+        aria-label="Open saved locations"
+        aria-expanded="false"
+      >
+        <span class="sheet-toggle-bar"></span>
+        <span class="sheet-toggle-label">📍 Saved Locations</span>
+      </button>
+
+      <div id="sheet-backdrop" class="sheet-backdrop hidden"></div>
+
+      <div
+        id="bottom-sheet"
+        class="table-wrapper bottom-sheet hidden"
+        role="dialog"
+        aria-label="Saved Locations"
+      >
+        <div class="sheet-header" id="sheet-header">
+          <div class="sheet-handle"></div>
+          <div class="sheet-title-row">
+            <h2 class="sheet-title">Saved Locations</h2>
+            <button id="sheet-close-btn" class="sheet-close-btn" aria-label="Close saved locations">
+              &times;
+            </button>
+          </div>
+        </div>
+        <div class="sheet-content">
+          <table id="locations-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Country</th>
+                <th>Lat/Long</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="locations-body"></tbody>
+          </table>
+          <div id="no-locations" class="hidden">No saved locations found.</div>
+        </div>
       </div>
     </div>
 
