@@ -22,14 +22,6 @@ function updateLeafletMap(locations) {
 
   initLeafletMap();
 
-  if (mapEl) {
-    if (!locations || locations.length === 0) {
-      mapEl.classList.add('hidden');
-    } else {
-      mapEl.classList.remove('hidden');
-    }
-  }
-
   if (!leafletMap || !leafletMarkersGroup) return;
 
   leafletMarkersGroup.clearLayers();
@@ -172,11 +164,75 @@ function deleteLocation(index) {
   renderLocations();
 }
 
+function isBottomSheetOpen() {
+  var backdrop = document.getElementById('sheet-backdrop');
+  var sheet = document.getElementById('bottom-sheet') || document.querySelector('.table-wrapper');
+  if (!sheet) return false;
+  return (
+    !sheet.classList.contains('closed') &&
+    !sheet.classList.contains('hidden') &&
+    (backdrop ? !backdrop.classList.contains('hidden') : true)
+  );
+}
+
+function openBottomSheet() {
+  var backdrop = document.getElementById('sheet-backdrop');
+  var sheet = document.getElementById('bottom-sheet') || document.querySelector('.table-wrapper');
+  var toggle = document.getElementById('sheet-toggle');
+
+  if (backdrop) backdrop.classList.remove('hidden');
+  if (sheet) {
+    sheet.classList.remove('hidden');
+    sheet.classList.remove('closed');
+  }
+  if (toggle) toggle.setAttribute('aria-expanded', 'true');
+
+  if (leafletMap) {
+    setTimeout(function () {
+      leafletMap.invalidateSize();
+    }, 100);
+  }
+}
+
+function closeBottomSheet() {
+  var backdrop = document.getElementById('sheet-backdrop');
+  var sheet = document.getElementById('bottom-sheet') || document.querySelector('.table-wrapper');
+  var toggle = document.getElementById('sheet-toggle');
+
+  if (backdrop) backdrop.classList.add('hidden');
+  if (sheet) sheet.classList.add('closed');
+  if (toggle) toggle.setAttribute('aria-expanded', 'false');
+
+  if (leafletMap) {
+    setTimeout(function () {
+      leafletMap.invalidateSize();
+    }, 100);
+  }
+}
+
+function toggleBottomSheet() {
+  if (isBottomSheetOpen()) {
+    closeBottomSheet();
+  } else {
+    openBottomSheet();
+  }
+}
+
 function setTableVisible(visible) {
   var promptEl = document.getElementById('permission-prompt');
-  var tableWrapper = document.querySelector('.table-wrapper');
+  var sheetToggle = document.getElementById('sheet-toggle');
+  var bottomSheet =
+    document.getElementById('bottom-sheet') || document.querySelector('.table-wrapper');
+  var backdrop = document.getElementById('sheet-backdrop');
+
   if (promptEl) promptEl.classList[visible ? 'add' : 'remove']('hidden');
-  if (tableWrapper) tableWrapper.classList[visible ? 'remove' : 'add']('hidden');
+  if (sheetToggle) sheetToggle.classList[visible ? 'remove' : 'add']('hidden');
+  if (bottomSheet) bottomSheet.classList[visible ? 'remove' : 'add']('hidden');
+  if (visible) {
+    closeBottomSheet();
+  } else if (backdrop) {
+    backdrop.classList.add('hidden');
+  }
 }
 
 function showTable() {
@@ -248,5 +304,49 @@ document.addEventListener('DOMContentLoaded', function () {
   if (btn) {
     btn.addEventListener('click', requestPermission);
   }
+
+  var toggleBtn = document.getElementById('sheet-toggle');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', openBottomSheet);
+  }
+
+  var closeBtn = document.getElementById('sheet-close-btn');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeBottomSheet);
+  }
+
+  var backdrop = document.getElementById('sheet-backdrop');
+  if (backdrop) {
+    backdrop.addEventListener('click', closeBottomSheet);
+  }
+
+  var sheetHeader = document.getElementById('sheet-header');
+  if (sheetHeader) {
+    var startY = 0;
+    sheetHeader.addEventListener('touchstart', function (e) {
+      if (e.touches && e.touches.length > 0) {
+        startY = e.touches[0].clientY;
+      }
+    });
+    sheetHeader.addEventListener('touchmove', function (e) {
+      if (e.touches && e.touches.length > 0) {
+        var currentY = e.touches[0].clientY;
+        if (currentY - startY > 50) {
+          closeBottomSheet();
+        }
+      }
+    });
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && isBottomSheetOpen()) {
+      closeBottomSheet();
+    }
+  });
+
+  window.addEventListener('resize', function () {
+    if (leafletMap) leafletMap.invalidateSize();
+  });
+
   checkGeolocationPermission();
 });

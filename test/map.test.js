@@ -109,24 +109,42 @@ function createMapSandbox(navigator, localStorageSeed) {
 
   const promptClassList = new Set();
   const tableWrapperClassList = new Set();
+  const sheetClassList = new Set();
+  const toggleClassList = new Set();
+  const backdropClassList = new Set();
   const mapClassList = new Set();
-  const promptMock = {
-    classList: { add: (c) => promptClassList.add(c), remove: (c) => promptClassList.delete(c) },
-  };
-  const tableWrapperMock = {
-    classList: {
-      add: (c) => tableWrapperClassList.add(c),
-      remove: (c) => tableWrapperClassList.delete(c),
+
+  const createClassListMock = (set) => ({
+    add: (c) => set.add(c),
+    remove: (c) => set.delete(c),
+    contains: (c) => set.has(c),
+  });
+
+  const promptMock = { classList: createClassListMock(promptClassList) };
+  const tableWrapperMock = { classList: createClassListMock(tableWrapperClassList) };
+  const sheetMock = { classList: createClassListMock(sheetClassList) };
+
+  let toggleAriaExpanded = 'false';
+  const toggleMock = {
+    classList: createClassListMock(toggleClassList),
+    setAttribute: (name, val) => {
+      if (name === 'aria-expanded') toggleAriaExpanded = String(val);
     },
+    getAttribute: (name) => (name === 'aria-expanded' ? toggleAriaExpanded : null),
   };
-  const mapElMock = {
-    classList: { add: (c) => mapClassList.add(c), remove: (c) => mapClassList.delete(c) },
-  };
+
+  const backdropMock = { classList: createClassListMock(backdropClassList) };
+  const mapElMock = { classList: createClassListMock(mapClassList) };
 
   const elements = {
     'permission-prompt': promptMock,
+    'bottom-sheet': sheetMock,
+    'sheet-toggle': toggleMock,
+    'sheet-backdrop': backdropMock,
+    'sheet-close-btn': { addEventListener: () => {} },
+    'sheet-header': { addEventListener: () => {} },
     'locations-body': { innerHTML: '', appendChild: () => {} },
-    'no-locations': { classList: { add: () => {}, remove: () => {} } },
+    'no-locations': { classList: createClassListMock(new Set()) },
     map: mapElMock,
   };
 
@@ -140,23 +158,34 @@ function createMapSandbox(navigator, localStorageSeed) {
     Date: Date,
     JSON: JSON,
     isNaN: isNaN,
+    setTimeout: (fn) => fn(),
     document: {
       getElementById: (id) => elements[id] || null,
-      querySelector: (sel) => (sel === '.table-wrapper' ? tableWrapperMock : null),
+      querySelector: (sel) => (sel === '.table-wrapper' ? sheetMock : null),
       createElement: () => ({ appendChild: () => {}, setAttribute: () => {} }),
       addEventListener: () => {},
     },
+    window: { addEventListener: () => {} },
   };
 
   vm.createContext(sandbox);
   vm.runInContext(mapJsSource, sandbox);
 
-  return { sandbox, promptClassList, tableWrapperClassList, localStorage };
+  return {
+    sandbox,
+    promptClassList,
+    tableWrapperClassList,
+    sheetClassList,
+    toggleClassList,
+    backdropClassList,
+    localStorage,
+    getToggleAriaExpanded: () => toggleAriaExpanded,
+  };
 }
 
 test('map.js shows the permission prompt when there is no prior grant and permissions.query is unavailable (e.g. iOS Safari)', async () => {
   let positionRequested = false;
-  const { sandbox, promptClassList, tableWrapperClassList } = createMapSandbox({
+  const { sandbox, promptClassList, sheetClassList } = createMapSandbox({
     geolocation: {
       getCurrentPosition: () => {
         positionRequested = true;
@@ -173,12 +202,12 @@ test('map.js shows the permission prompt when there is no prior grant and permis
     false,
     'permission-prompt should NOT have hidden class'
   );
-  assert.equal(tableWrapperClassList.has('hidden'), true, 'table-wrapper SHOULD have hidden class');
+  assert.equal(sheetClassList.has('hidden'), true, 'bottom sheet SHOULD have hidden class');
 });
 
 test('map.js remembers a prior grant and skips the prompt on later visits without permissions.query', async () => {
   let positionRequested = false;
-  const { sandbox, promptClassList, tableWrapperClassList } = createMapSandbox(
+  const { sandbox, promptClassList, sheetClassList } = createMapSandbox(
     {
       geolocation: {
         getCurrentPosition: (successCb) => {
@@ -195,15 +224,11 @@ test('map.js remembers a prior grant and skips the prompt on later visits withou
 
   assert.ok(positionRequested, 'should silently retry geolocation using the remembered grant');
   assert.equal(promptClassList.has('hidden'), true, 'permission-prompt SHOULD have hidden class');
-  assert.equal(
-    tableWrapperClassList.has('hidden'),
-    false,
-    'table-wrapper should NOT have hidden class'
-  );
+  assert.equal(sheetClassList.has('hidden'), false, 'bottom sheet should NOT have hidden class');
 });
 
 test('map.js clears a stale grant and shows the prompt if a remembered grant no longer works', async () => {
-  const { sandbox, promptClassList, tableWrapperClassList, localStorage } = createMapSandbox(
+  const { sandbox, promptClassList, sheetClassList, localStorage } = createMapSandbox(
     {
       geolocation: {
         getCurrentPosition: (successCb, errorCb) => {
@@ -227,11 +252,11 @@ test('map.js clears a stale grant and shows the prompt if a remembered grant no 
     false,
     'permission-prompt should NOT have hidden class'
   );
-  assert.equal(tableWrapperClassList.has('hidden'), true, 'table-wrapper SHOULD have hidden class');
+  assert.equal(sheetClassList.has('hidden'), true, 'bottom sheet SHOULD have hidden class');
 });
 
 test('map.js shows table and remembers the grant when permissions.query reports granted', async () => {
-  const { sandbox, promptClassList, tableWrapperClassList, localStorage } = createMapSandbox({
+  const { sandbox, promptClassList, sheetClassList, localStorage } = createMapSandbox({
     geolocation: {},
     permissions: { query: async () => ({ state: 'granted' }) },
   });
@@ -240,16 +265,37 @@ test('map.js shows table and remembers the grant when permissions.query reports 
   await new Promise((resolve) => setTimeout(resolve, 50));
 
   assert.equal(promptClassList.has('hidden'), true, 'permission-prompt SHOULD have hidden class');
-  assert.equal(
-    tableWrapperClassList.has('hidden'),
-    false,
-    'table-wrapper should NOT have hidden class'
-  );
+  assert.equal(sheetClassList.has('hidden'), false, 'bottom sheet should NOT have hidden class');
   assert.equal(
     localStorage.store.diplospot_geo_granted,
     '1',
     'should remember the grant for future visits'
   );
+});
+
+test('openBottomSheet and closeBottomSheet toggle bottom sheet visibility and aria-expanded state', () => {
+  const { sandbox, sheetClassList, backdropClassList, getToggleAriaExpanded } = createMapSandbox(
+    {}
+  );
+
+  // Initially closed
+  sandbox.closeBottomSheet();
+  assert.equal(sheetClassList.has('closed'), true, 'Sheet should have closed class');
+  assert.equal(backdropClassList.has('hidden'), true, 'Backdrop should have hidden class');
+  assert.equal(getToggleAriaExpanded(), 'false', 'aria-expanded should be false');
+
+  // Open sheet
+  sandbox.openBottomSheet();
+  assert.equal(sheetClassList.has('closed'), false, 'Sheet should not have closed class');
+  assert.equal(sheetClassList.has('hidden'), false, 'Sheet should not have hidden class');
+  assert.equal(backdropClassList.has('hidden'), false, 'Backdrop should not have hidden class');
+  assert.equal(getToggleAriaExpanded(), 'true', 'aria-expanded should be true');
+
+  // Close sheet
+  sandbox.closeBottomSheet();
+  assert.equal(sheetClassList.has('closed'), true, 'Sheet should have closed class');
+  assert.equal(backdropClassList.has('hidden'), true, 'Backdrop should have hidden class');
+  assert.equal(getToggleAriaExpanded(), 'false', 'aria-expanded should be false');
 });
 
 test('updateLeafletMap limits markers to the last 20 locations and sets popup content with country and timestamp', () => {
