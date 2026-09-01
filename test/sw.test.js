@@ -209,15 +209,15 @@ test('built map.html should NOT contain service worker registration or update no
   );
 });
 
-test('built sw.js should have cache-first strategy and version v4', (t) => {
+test('built sw.js should have cache-first strategy and version v5', (t) => {
   const distSw = path.join(__dirname, '..', 'dist', 'sw.js');
   assert.ok(fs.existsSync(distSw), 'dist/sw.js should exist');
 
   const content = fs.readFileSync(distSw, 'utf8');
 
   assert.ok(
-    content.includes('CACHE_NAME="diplospot-v4"') ||
-      content.includes("CACHE_NAME = 'diplospot-v4'"),
+    content.includes('CACHE_NAME="diplospot-v5"') ||
+      content.includes("CACHE_NAME = 'diplospot-v5'"),
     'Should have updated cache version'
   );
   assert.ok(content.includes('caches.match'), 'Should use caches.match');
@@ -243,6 +243,66 @@ test('built sw.js should have cache-first strategy and version v4', (t) => {
     false,
     'sw-register.js should not be in ASSETS'
   );
+});
+
+test('refreshAllAssets refreshes cached URLs from cache.keys() or falls back to ASSETS', async () => {
+  const vm = require('node:vm');
+  const swJs = fs.readFileSync(path.join(__dirname, '..', 'src', 'sw.js'), 'utf8');
+
+  const fetchedUrls = [];
+  const putUrls = [];
+
+  const mockCache = {
+    keys: async () => [
+      { url: 'https://example.com/map.js' },
+      { url: 'https://example.com/map.html' },
+    ],
+    put: async (url, res) => {
+      putUrls.push(url);
+    },
+  };
+
+  const sandbox = {
+    console: { log: () => {} },
+    self: {
+      addEventListener: () => {},
+      clients: {
+        matchAll: async () => [],
+      },
+    },
+    caches: {
+      open: async () => mockCache,
+    },
+    fetch: async (url, options) => {
+      fetchedUrls.push({ url, options });
+      return { status: 200 };
+    },
+  };
+
+  vm.createContext(sandbox);
+  vm.runInContext(swJs, sandbox);
+
+  await sandbox.refreshAllAssets({ commit: 'abc1234' });
+
+  assert.strictEqual(fetchedUrls.length, 2, 'should refresh 2 URLs returned by cache.keys()');
+  assert.strictEqual(fetchedUrls[0].url, 'https://example.com/map.js');
+  assert.strictEqual(fetchedUrls[0].options.cache, 'reload');
+  assert.strictEqual(fetchedUrls[1].url, 'https://example.com/map.html');
+  assert.strictEqual(fetchedUrls[1].options.cache, 'reload');
+  assert.deepStrictEqual(
+    putUrls,
+    ['https://example.com/map.js', 'https://example.com/map.html'],
+    'should put refreshed responses in cache'
+  );
+
+  // Test fallback to ASSETS when cache.keys() is empty
+  fetchedUrls.length = 0;
+  mockCache.keys = async () => [];
+
+  await sandbox.refreshAllAssets({ commit: 'abc1234' });
+
+  assert.strictEqual(fetchedUrls.length, sandbox.ASSETS.length);
+  assert.strictEqual(fetchedUrls[0].url, sandbox.ASSETS[0]);
 });
 
 test('build should generate buildinfo.js with commit, repoUrl, and builtAt', (t) => {

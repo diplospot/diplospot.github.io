@@ -1,4 +1,4 @@
-var CACHE_NAME = 'diplospot-v4';
+var CACHE_NAME = 'diplospot-v5';
 var ASSETS = [
   './',
   './index.html',
@@ -86,20 +86,28 @@ function refreshAllAssets(remote) {
   return caches
     .open(CACHE_NAME)
     .then(function (cache) {
-      return Promise.all(
-        ASSETS.map(function (url) {
-          return fetch(url, { cache: 'reload' })
-            .then(function (res) {
-              if (res && res.status === 200) {
-                log('refreshed ' + url);
-                return cache.put(url, res);
-              }
-            })
-            .catch(function (e) {
-              log('refresh FAILED: ' + url + ' - ' + e);
-            });
-        })
-      );
+      return cache.keys().then(function (keys) {
+        var targets =
+          keys && keys.length > 0
+            ? keys.map(function (req) {
+                return req.url || req;
+              })
+            : ASSETS;
+        return Promise.all(
+          targets.map(function (url) {
+            return fetch(url, { cache: 'reload' })
+              .then(function (res) {
+                if (res && res.status === 200) {
+                  log('refreshed ' + url);
+                  return cache.put(url, res);
+                }
+              })
+              .catch(function (e) {
+                log('refresh FAILED: ' + url + ' - ' + e);
+              });
+          })
+        );
+      });
     })
     .then(function () {
       log('refresh complete for ' + remote.commit);
