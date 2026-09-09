@@ -302,56 +302,67 @@ function showPermissionPrompt() {
 
 function checkGeolocationPermission() {
   try {
-    if (!('geolocation' in navigator)) {
+    if (!geoIsSupported()) {
       showPermissionPrompt();
       return;
     }
 
-    if (localStorage.getItem('diplospot_geo_granted') === '1') {
-      navigator.geolocation.getCurrentPosition(
-        function () {
-          showTable();
-        },
-        function () {
-          localStorage.removeItem('diplospot_geo_granted');
-          showPermissionPrompt();
-        },
-        { timeout: 5000 }
-      );
-      return;
-    }
-
-    if ('permissions' in navigator) {
-      navigator.permissions
-        .query({ name: 'geolocation' })
-        .then(function (res) {
-          if (res && res.state === 'granted') {
-            localStorage.setItem('diplospot_geo_granted', '1');
-            showTable();
-          } else {
-            showPermissionPrompt();
-          }
-        })
-        .catch(function () {
-          showPermissionPrompt();
-        });
-    } else {
-      showPermissionPrompt();
-    }
+    geoQueryPermissionState(function (state) {
+      if (state === 'granted') {
+        geoMarkGranted();
+        showTable();
+      } else if (state === 'denied') {
+        geoClearGranted();
+        showPermissionPrompt();
+      } else if (geoWasGranted()) {
+        // 'prompt' or 'unknown' (Permissions API unavailable/unreliable,
+        // notably on older iOS Safari) - trust the last confirmed grant
+        // instead of forcing a live location fetch just to check.
+        showTable();
+      } else {
+        showPermissionPrompt();
+      }
+    });
   } catch (e) {
     showPermissionPrompt();
   }
 }
 
+function setPermissionError(message) {
+  var errorEl = document.getElementById('permission-error');
+  if (!errorEl) return;
+  if (message) {
+    errorEl.textContent = message;
+    errorEl.classList.remove('hidden');
+  } else {
+    errorEl.textContent = '';
+    errorEl.classList.add('hidden');
+  }
+}
+
 function requestPermission() {
-  if (!('geolocation' in navigator)) return;
-  navigator.geolocation.getCurrentPosition(
+  if (!geoIsSupported()) return;
+  var btn = document.getElementById('enable-location-btn');
+  setPermissionError(null);
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Requesting…';
+  }
+  geoGetCurrentPosition(
     function () {
-      localStorage.setItem('diplospot_geo_granted', '1');
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Enable Location Access';
+      }
       showTable();
     },
-    function () {},
-    { timeout: 5000 }
+    function (error) {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Enable Location Access';
+      }
+      setPermissionError(geoErrorMessage(error));
+    }
   );
 }
 

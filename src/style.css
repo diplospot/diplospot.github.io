@@ -652,6 +652,17 @@ a.refresh-button {
   background: var(--color-accent-hover);
 }
 
+.permission-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.permission-error {
+  color: #e5484d;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .delete-btn {
   background: transparent;
   color: var(--color-text);

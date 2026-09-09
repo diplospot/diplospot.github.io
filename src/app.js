@@ -115,36 +115,38 @@ function resetPinButton() {
 }
 
 function saveCurrentLocation() {
-  try {
-    if (!('geolocation' in navigator)) return;
-    navigator.geolocation.getCurrentPosition(
-      function (position) {
-        try {
-          var locations = JSON.parse(localStorage.getItem('diplospot_locations') || '[]');
-          locations.push({
-            timestamp: new Date().toISOString(),
-            country: currentCountry,
-            code: currentCode,
-            flag: currentFlag,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-          localStorage.setItem('diplospot_locations', JSON.stringify(locations));
-          localStorage.setItem('diplospot_geo_granted', '1');
+  var pinBtn = document.getElementById('pin-button');
+  geoGetCurrentPosition(
+    function (position) {
+      try {
+        var locations = JSON.parse(localStorage.getItem('diplospot_locations') || '[]');
+        locations.push({
+          timestamp: new Date().toISOString(),
+          country: currentCountry,
+          code: currentCode,
+          flag: currentFlag,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        localStorage.setItem('diplospot_locations', JSON.stringify(locations));
 
-          var pinBtn = document.getElementById('pin-button');
-          if (pinBtn) {
-            pinBtn.textContent = '✓';
-            pinBtn.classList.add('saved');
-            if (pinTimeout) clearTimeout(pinTimeout);
-            pinTimeout = setTimeout(resetPinButton, 5000);
-          }
-        } catch (e) {}
-      },
-      function () {},
-      { timeout: 5000 }
-    );
-  } catch (e) {}
+        if (pinBtn) {
+          pinBtn.textContent = '✓';
+          pinBtn.classList.add('saved');
+          if (pinTimeout) clearTimeout(pinTimeout);
+          pinTimeout = setTimeout(resetPinButton, 5000);
+        }
+      } catch (e) {}
+    },
+    function () {
+      if (pinBtn) {
+        pinBtn.textContent = '⚠️';
+        pinBtn.classList.add('saved');
+        if (pinTimeout) clearTimeout(pinTimeout);
+        pinTimeout = setTimeout(resetPinButton, 5000);
+      }
+    }
+  );
 }
 
 document.addEventListener('DOMContentLoaded', function () {
