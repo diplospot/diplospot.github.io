@@ -63,10 +63,10 @@ function onInput() {
   var raw = input.value;
   var letters = raw.toUpperCase().replace(/[^A-Z]/g, '');
 
-  var isSpecial = letters.length > 0 && !!PLATE_PREFIXES[letters[0]];
+  var allowsThree = canBeThreeLetterCode(letters);
 
   if (letters.length > 0) {
-    if (!isSpecial) {
+    if (!allowsThree) {
       input.maxLength = 2;
       if (letters.length > 2) {
         letters = letters.substring(0, 2);
@@ -79,7 +79,7 @@ function onInput() {
     input.maxLength = 3;
   }
 
-  if (letters.length >= (isSpecial ? 3 : 2)) {
+  if (letters.length >= (allowsThree ? 3 : 2)) {
     input.blur();
   }
 

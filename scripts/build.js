@@ -20,7 +20,14 @@ const COPY_FILES = [
   'icon-512.png',
 ];
 
-const INLINE_SCRIPTS = ['ofm_codes.js', 'app.js', 'sw-logs.js', 'info-panel.js', 'sw-register.js'];
+const INLINE_SCRIPTS = [
+  'ofm_codes.js',
+  'geo.js',
+  'app.js',
+  'sw-logs.js',
+  'info-panel.js',
+  'sw-register.js',
+];
 
 const CSS_LINK_PATTERN = /<link\s+rel="stylesheet"\s+href="style\.css"\s*\/?>/;
 
@@ -102,14 +109,14 @@ async function build() {
   const minifiedCss = new CleanCSS({}).minify(css).styles;
 
   const scriptTagsPattern =
-    /<script\s+src="ofm_codes\.js"><\/script>\s*<script\s+src="app\.js"><\/script>\s*<script\s+src="sw-logs\.js"><\/script>\s*<script\s+src="info-panel\.js"><\/script>\s*<script\s+src="sw-register\.js"><\/script>/;
+    /<script\s+src="ofm_codes\.js"><\/script>\s*<script\s+src="geo\.js"><\/script>\s*<script\s+src="app\.js"><\/script>\s*<script\s+src="sw-logs\.js"><\/script>\s*<script\s+src="info-panel\.js"><\/script>\s*<script\s+src="sw-register\.js"><\/script>/;
   await buildPage('index.html', INLINE_SCRIPTS, scriptTagsPattern, minifiedCss, [
     path.join(DIST, 'index.html'),
   ]);
 
   const mapScriptPattern =
-    /<script\s+src="ofm_codes\.js"><\/script>\s*<script\s+src="map\.js"><\/script>/;
-  await buildPage('map.html', ['ofm_codes.js', 'map.js'], mapScriptPattern, minifiedCss, [
+    /<script\s+src="ofm_codes\.js"><\/script>\s*<script\s+src="geo\.js"><\/script>\s*<script\s+src="map\.js"><\/script>/;
+  await buildPage('map.html', ['ofm_codes.js', 'geo.js', 'map.js'], mapScriptPattern, minifiedCss, [
     path.join(DIST, 'map.html'),
     path.join(DIST, 'map', 'index.html'),
   ]);
