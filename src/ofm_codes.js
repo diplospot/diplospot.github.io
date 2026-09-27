@@ -46,6 +46,7 @@ var OFM_CODES = {
   DP: { country: 'Bangladesh', flag: '🇧🇩', source: 'US State Dept OFM' },
   DR: { country: 'Slovakia', flag: '🇸🇰', source: 'US State Dept OFM' },
   DZ: { country: 'Palau', flag: '🇵🇼', source: 'US State Dept OFM' },
+  EAB: { country: 'Taiwan', flag: '🇹🇼', source: 'US State Dept OFM' },
   FF: { country: 'Antigua and Barbuda', flag: '🇦🇬', source: 'US State Dept OFM' },
   FG: { country: 'Central African Republic', flag: '🇨🇫', source: 'US State Dept OFM' },
   FH: { country: 'Ireland', flag: '🇮🇪', source: 'US State Dept OFM' },
@@ -227,21 +228,50 @@ function hasPlatePrefix(code) {
   return code.length >= 3 && !!PLATE_PREFIXES[code[0]];
 }
 
+function canBeThreeLetterCode(code) {
+  if (!code) return false;
+  code = code.toUpperCase().replace(/[^A-Z]/g, '');
+  if (code.length === 0) return false;
+  if (!!PLATE_PREFIXES[code[0]]) return true;
+
+  var codes = Object.keys(OFM_CODES).concat(Object.keys(SPOTTED_CODES));
+  for (var i = 0; i < codes.length; i++) {
+    if (codes[i].length === 3 && codes[i].indexOf(code) === 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function getCountryCode(code) {
   code = code.toUpperCase().replace(/[^A-Z]/g, '');
   if (code.length < 2) return null;
-  return hasPlatePrefix(code) ? code.substring(1, 3) : code.substring(0, 2);
+
+  if (OFM_CODES[code] || SPOTTED_CODES[code]) {
+    return code;
+  }
+
+  if (hasPlatePrefix(code)) {
+    var rest = code.substring(1);
+    if (OFM_CODES[rest] || SPOTTED_CODES[rest]) {
+      return rest;
+    }
+    return code.substring(1, 3);
+  }
+
+  return code.substring(0, 2);
 }
 
 function lookupPlate(code) {
   code = code.toUpperCase().replace(/[^A-Z]/g, '');
   if (code.length < 2) return null;
 
-  var prefix = hasPlatePrefix(code) ? PLATE_PREFIXES[code[0]] : null;
   var countryCode = getCountryCode(code);
-
   var entry = OFM_CODES[countryCode] || SPOTTED_CODES[countryCode];
+
   if (!entry) return null;
+
+  var prefix = countryCode !== code && hasPlatePrefix(code) ? PLATE_PREFIXES[code[0]] : null;
 
   return {
     prefix: prefix,

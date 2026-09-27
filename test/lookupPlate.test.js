@@ -17,6 +17,24 @@ test('looks up a known 2-letter code', () => {
   assert.equal(result.prefix, null);
 });
 
+test('looks up 3-letter full code EAB for Taiwan', () => {
+  const result = sandbox.lookupPlate('EAB');
+  assert.equal(result.country, 'Taiwan');
+  assert.equal(result.flag, '🇹🇼');
+  assert.equal(result.code, 'EAB');
+  assert.equal(result.prefix, null);
+});
+
+test('canBeThreeLetterCode identifies 3-letter codes and prefixes', () => {
+  assert.equal(sandbox.canBeThreeLetterCode('E'), true);
+  assert.equal(sandbox.canBeThreeLetterCode('EA'), true);
+  assert.equal(sandbox.canBeThreeLetterCode('EAB'), true);
+  assert.equal(sandbox.canBeThreeLetterCode('D'), true);
+  assert.equal(sandbox.canBeThreeLetterCode('DC'), true);
+  assert.equal(sandbox.canBeThreeLetterCode('X'), false);
+  assert.equal(sandbox.canBeThreeLetterCode('XZ'), false);
+});
+
 test('parses a plate-type prefix followed by the country code', () => {
   const result = sandbox.lookupPlate('DCY');
   assert.equal(result.prefix, 'Diplomat');
@@ -91,12 +109,13 @@ test('no overlap between OFM_CODES and SPOTTED_CODES', () => {
   }
 });
 
-test('getCountryCode extracts 2-letter country code from various plate formats', () => {
+test('getCountryCode extracts country code from various plate formats', () => {
   assert.equal(sandbox.getCountryCode('XX'), 'XX');
   assert.equal(sandbox.getCountryCode('DXX'), 'XX');
   assert.equal(sandbox.getCountryCode('SXX'), 'XX');
   assert.equal(sandbox.getCountryCode('CXX'), 'XX');
   assert.equal(sandbox.getCountryCode('ABC'), 'AB');
+  assert.equal(sandbox.getCountryCode('EAB'), 'EAB');
   assert.equal(sandbox.getCountryCode('X'), null);
 });
 
@@ -215,6 +234,19 @@ test('loses focus after typing 3 letters when the first letter is C, D, or S', (
 
   setValue('DCY');
   assert.equal(wasBlurred(), true, 'should blur after 3 letters');
+});
+
+test('loses focus after typing 3 letters when typing EAB', () => {
+  const { setValue, wasBlurred } = setupOnInputSandbox();
+
+  setValue('E');
+  assert.equal(wasBlurred(), false, 'should not blur after 1 letter for EAB prefix');
+
+  setValue('EA');
+  assert.equal(wasBlurred(), false, 'should not blur after 2 letters for EAB prefix');
+
+  setValue('EAB');
+  assert.equal(wasBlurred(), true, 'should blur after 3 letters for EAB');
 });
 
 test('focusing the plate input selects all text and leaves the map link visible', () => {

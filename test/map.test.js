@@ -46,6 +46,7 @@ function createLocalStorageMock(seed) {
 
 test('saveCurrentLocation saves location on pin button click and toggles icon to checkmark', async () => {
   const appJsSource = fs.readFileSync(path.join(__dirname, '../src/app.js'), 'utf8');
+  const geoJsSource = fs.readFileSync(path.join(__dirname, '../src/geo.js'), 'utf8');
   const ofmCodesSource = fs.readFileSync(path.join(__dirname, '../src/ofm_codes.js'), 'utf8');
 
   let positionRequested = false;
@@ -80,7 +81,7 @@ test('saveCurrentLocation saves location on pin button click and toggles icon to
   };
 
   vm.createContext(sandbox);
-  vm.runInContext(ofmCodesSource + '\n' + appJsSource, sandbox);
+  vm.runInContext(ofmCodesSource + '\n' + geoJsSource + '\n' + appJsSource, sandbox);
 
   // show result for France first
   sandbox.showResult({ success: true, country: 'France', code: 'DJ' });
@@ -107,6 +108,7 @@ test('saveCurrentLocation saves location on pin button click and toggles icon to
 
 test('saveCurrentLocation saves code for unrecognized plates', async () => {
   const appJsSource = fs.readFileSync(path.join(__dirname, '../src/app.js'), 'utf8');
+  const geoJsSource = fs.readFileSync(path.join(__dirname, '../src/geo.js'), 'utf8');
   const ofmCodesSource = fs.readFileSync(path.join(__dirname, '../src/ofm_codes.js'), 'utf8');
 
   const localStorage = createLocalStorageMock();
@@ -139,7 +141,7 @@ test('saveCurrentLocation saves code for unrecognized plates', async () => {
   };
 
   vm.createContext(sandbox);
-  vm.runInContext(ofmCodesSource + '\n' + appJsSource, sandbox);
+  vm.runInContext(ofmCodesSource + '\n' + geoJsSource + '\n' + appJsSource, sandbox);
 
   sandbox.showResult({ success: false, message: 'Code "DFA" not found' });
   sandbox.saveCurrentLocation();
@@ -151,6 +153,7 @@ test('saveCurrentLocation saves code for unrecognized plates', async () => {
 });
 
 function createMapSandbox(navigator, localStorageSeed) {
+  const geoJsSource = fs.readFileSync(path.join(__dirname, '../src/geo.js'), 'utf8');
   const mapJsSource = fs.readFileSync(path.join(__dirname, '../src/map.js'), 'utf8');
 
   const promptClassList = new Set();
@@ -215,7 +218,7 @@ function createMapSandbox(navigator, localStorageSeed) {
   };
 
   vm.createContext(sandbox);
-  vm.runInContext(mapJsSource, sandbox);
+  vm.runInContext(geoJsSource + '\n' + mapJsSource, sandbox);
 
   return {
     sandbox,
@@ -256,29 +259,8 @@ test('map.js remembers a prior grant and skips the prompt on later visits withou
   const { sandbox, promptClassList, sheetClassList } = createMapSandbox(
     {
       geolocation: {
-        getCurrentPosition: (successCb) => {
+        getCurrentPosition: () => {
           positionRequested = true;
-          successCb({ coords: { latitude: 0, longitude: 0 } });
-        },
-      },
-    },
-    { diplospot_geo_granted: '1' }
-  );
-
-  sandbox.checkGeolocationPermission();
-  await new Promise((resolve) => setTimeout(resolve, 50));
-
-  assert.ok(positionRequested, 'should silently retry geolocation using the remembered grant');
-  assert.equal(promptClassList.has('hidden'), true, 'permission-prompt SHOULD have hidden class');
-  assert.equal(sheetClassList.has('hidden'), false, 'bottom sheet should NOT have hidden class');
-});
-
-test('map.js clears a stale grant and shows the prompt if a remembered grant no longer works', async () => {
-  const { sandbox, promptClassList, sheetClassList, localStorage } = createMapSandbox(
-    {
-      geolocation: {
-        getCurrentPosition: (successCb, errorCb) => {
-          errorCb();
         },
       },
     },
@@ -289,9 +271,30 @@ test('map.js clears a stale grant and shows the prompt if a remembered grant no 
   await new Promise((resolve) => setTimeout(resolve, 50));
 
   assert.equal(
+    positionRequested,
+    false,
+    'should NOT trigger a live location fetch on permission check'
+  );
+  assert.equal(promptClassList.has('hidden'), true, 'permission-prompt SHOULD have hidden class');
+  assert.equal(sheetClassList.has('hidden'), false, 'bottom sheet should NOT have hidden class');
+});
+
+test('map.js clears grant and shows prompt if permissions.query reports denied', async () => {
+  const { sandbox, promptClassList, sheetClassList, localStorage } = createMapSandbox(
+    {
+      geolocation: {},
+      permissions: { query: async () => ({ state: 'denied' }) },
+    },
+    { diplospot_geo_granted: '1' }
+  );
+
+  sandbox.checkGeolocationPermission();
+  await new Promise((resolve) => setTimeout(resolve, 50));
+
+  assert.equal(
     localStorage.store.diplospot_geo_granted,
     undefined,
-    'stale grant flag should be cleared'
+    'denied grant flag should be cleared'
   );
   assert.equal(
     promptClassList.has('hidden'),
